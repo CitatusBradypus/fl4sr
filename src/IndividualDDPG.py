@@ -46,6 +46,8 @@ class IndividualDDPG():
         # loggers
         self.NAME = 'IndividualDDPG'
         self.init_data()
+        # debugging
+        self.debug = False
         return
 
     def init_buffers(self
@@ -100,7 +102,7 @@ class IndividualDDPG():
             for step in range(self.episode_step_count):
                 actions = self.agents_actions(current_states)
                 actions = self.actions_add_random(actions)
-                new_states, rewards, robots_finished, robots_succeeded_once = self.enviroment.step(actions)
+                new_states, rewards, robots_finished, robots_succeeded_once, debug = self.enviroment.step(actions)
                 total_rewards += rewards
                 self.buffers_save_transitions(current_states, actions, rewards, new_states, robots_finished)
                 if step % self.TIME_TRAIN == 0:
@@ -109,6 +111,18 @@ class IndividualDDPG():
                     self.agents_target()
                 if step % self.TIME_LOGGER == 0:
                     print('{}.{}'.format(episode, step))
+                if self.debug and (step == 0 or step == 1 or step == 2):
+                    print('New states: {}'.format(new_states))
+                    print('Rewards: {}'.format(rewards))
+                    print('Finished: {}'.format(robots_finished))
+                    print('Success: {}'.format(robots_succeeded_once))
+                    print('Debug: {}'.format(debug))
+                if step == 254:
+                    print('x.254 Finished: {}'.format(robots_finished))
+                    print('x.254 Success: {}'.format(robots_succeeded_once))
+                if step == 255:
+                    print('x.255 Finished: {}'.format(robots_finished))
+                    print('x.255 Success: {}'.format(robots_succeeded_once))
                 current_states = new_states
             self.data_collect(episode, total_rewards, robots_succeeded_once)
             print('Average episode rewards: {}'.format(self.average_rewards[episode]))
@@ -226,6 +240,11 @@ class IndividualDDPG():
         ) -> None:
         self.average_rewards[episode] = total_rewards / self.episode_step_count
         self.robots_succeeded_once[episode] = robots_succeeded_once
+        if episode != 0:
+            same_indexes = np.where(self.average_rewards[episode-1] == self.average_rewards[episode])[0]
+            if len(same_indexes) > 0:
+                self.debug = True
+                print('ERROR: Suspicious behaviour discovered, repeated fitness for robots {}'.format(same_indexes))
         return
 
     def data_save(self, 

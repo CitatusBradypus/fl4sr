@@ -40,7 +40,7 @@ class Enviroment():
         self.GOAL_RANGE = 0.5
         self.REWARD_GOAL = 100.0
         self.REWARD_COLLISION = -100.0
-        self.PROGRESS_REWARD_FACTOR = 40.0
+        self.PROGRESS_REWARD_FACTOR = 100.0
         # simulation time
         self.pause = rospy.ServiceProxy('gazebo/pause_physics', Empty)
         self.unpause = rospy.ServiceProxy('gazebo/unpause_physics', Empty)
@@ -119,8 +119,21 @@ class Enviroment():
             robot_id (int, optional): Id of robot to reset. 
                 Defaults to -1.
         """
+        self.reset_tb3_messages = \
+            [self.create_model_state('tb3_{}'.format(i),
+                                     self.x_starts[i],
+                                     self.y_starts[i],
+                                     -0.2)
+            for i in range(self.robot_count)]
+        self.reset_target_messages = \
+            [self.create_model_state('target_{}'.format(i),
+                                     self.targets[i][0],
+                                     self.targets[i][1],
+                                     0)
+            for i in range(self.robot_count)]
+        self.unpause()
         # wait for services
-        rospy.wait_for_service('gazebo/reset_simulation')
+        rospy.wait_for_service('/gazebo/reset_simulation')
         rospy.wait_for_service('/gazebo/set_model_state')
         # set model states
         try:
@@ -154,7 +167,6 @@ class Enviroment():
                      + (self.y_starts[robot_id] - self.y_targets[robot_id])**2)
         # wait for new scan message, so that laser values are updated
         # kinda cheeky but it works on my machine :D
-        self.unpause()
         rospy.wait_for_message('/tb3_0/scan', LaserScan)
         self.pause()
         return
@@ -247,6 +259,7 @@ class Enviroment():
         rewards = reward_distance + reward_goal + reward_collision
         
         # set current target distance as previous
+        distances_help = self.robot_target_distances_previous.copy()
         self.robot_target_distances_previous = robot_target_distances.copy()
         # restart robots
         robot_finished = self.robot_finished.copy()
@@ -254,7 +267,7 @@ class Enviroment():
             if self.robot_finished[i]:
                 self.reset(i)
 
-        return states, rewards, robot_finished, self.robot_succeeded
+        return states, rewards, robot_finished, self.robot_succeeded, (x, y, distances_help, robot_target_distances)
 
     def create_model_state(self, 
         name: str,

@@ -23,8 +23,13 @@ paths_critic = [path_data + '/FederatedLearningDDPG-20211129-230152/weights/crit
                 path_data + '/FederatedLearningDDPG-20211129-230152/weights/critic-final-3.pkl',
                 path_data + '/FederatedLearningDDPG-20211129-230152/weights/critic-final-4.pkl',
                 path_data + '/FederatedLearningDDPG-20211129-230152/weights/critic-final-5.pkl']
-                
-test = FederatedLearningDDPG(1000, 256, TURTLEBOT_WORLD)
+
+# L_RATES = [0.1, 0.01, 0.001]
+
+
+test = FederatedLearningDDPG(600, 256, TURTLEBOT_WORLD)
+# for i in range(len(test.agents)):
+#     test.agents[i].LEARNING_RATE = rate
 #test.agents_load(paths_actor, paths_critic)
 test.run()
 
