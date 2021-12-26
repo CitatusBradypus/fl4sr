@@ -41,9 +41,15 @@ class Enviroment():
         self.REWARD_GOAL = 100.0
         self.REWARD_COLLISION = -100.0
         self.PROGRESS_REWARD_FACTOR = 100.0
-        # simulation time
-        self.pause = rospy.ServiceProxy('gazebo/pause_physics', Empty)
-        self.unpause = rospy.ServiceProxy('gazebo/unpause_physics', Empty)
+        # simulation services
+        # rospy.wait_for_service('/gazebo/reset_simulation')
+        # self.reset_simulation = rospy.ServiceProxy('/gazebo/reset_simulation', Empty)
+        rospy.wait_for_service('/gazebo/reset_world')
+        self.reset_world = rospy.ServiceProxy('/gazebo/reset_world', Empty)
+        rospy.wait_for_service('/gazebo/pause_physics')
+        self.pause = rospy.ServiceProxy('/gazebo/pause_physics', Empty)
+        rospy.wait_for_service('/gazebo/unpause_physics')
+        self.unpause = rospy.ServiceProxy('/gazebo/unpause_physics', Empty)
         self.pause()
         # world settings
         self.robot_count = world.robot_count
@@ -76,7 +82,6 @@ class Enviroment():
         
         self.observation_dimension = self.laser_count + 4
         self.action_dimension = 2
-
 
         # publishers for turtlebots
         self.publisher_turtlebots = \
@@ -119,36 +124,20 @@ class Enviroment():
             robot_id (int, optional): Id of robot to reset. 
                 Defaults to -1.
         """
-        self.reset_tb3_messages = \
-            [self.create_model_state('tb3_{}'.format(i),
-                                     self.x_starts[i],
-                                     self.y_starts[i],
-                                     -0.2)
-            for i in range(self.robot_count)]
-        self.reset_target_messages = \
-            [self.create_model_state('target_{}'.format(i),
-                                     self.targets[i][0],
-                                     self.targets[i][1],
-                                     0)
-            for i in range(self.robot_count)]
-        self.unpause()
         # wait for services
         rospy.wait_for_service('/gazebo/reset_simulation')
         rospy.wait_for_service('/gazebo/set_model_state')
-        # set model states
-        try:
-            state_setter = rospy.ServiceProxy('/gazebo/set_model_state', SetModelState)
-            if robot_id == -1:
-                for i in range(self.robot_count):
-                    state_setter(self.reset_tb3_messages[i])
-                    state_setter(self.reset_target_messages[i])
-                    self.robot_finished[i] = False
-            else:
+        # set model states or reset world
+        if robot_id == -1:
+            self.reset_world()
+        else:
+            try:
+                state_setter = rospy.ServiceProxy('/gazebo/set_model_state', SetModelState)
                 state_setter(self.reset_tb3_messages[robot_id])
                 state_setter(self.reset_target_messages[robot_id])
                 self.robot_finished[robot_id] = False
-        except rospy.ServiceException as e:
-            print('Failed state setter!', e)
+            except rospy.ServiceException as e:
+                print('Failed state setter!', e)
         # set robot move command
         if robot_id == -1:
             for i in range(self.robot_count):
@@ -167,8 +156,9 @@ class Enviroment():
                      + (self.y_starts[robot_id] - self.y_targets[robot_id])**2)
         # wait for new scan message, so that laser values are updated
         # kinda cheeky but it works on my machine :D
+        self.unpause()
         rospy.wait_for_message('/tb3_0/scan', LaserScan)
-        self.pause()
+        # self.pause()
         return
     
     def step(self,
@@ -187,7 +177,8 @@ class Enviroment():
             tuple: states (np.ndarray), 
                    rewards (np.ndarray), 
                    robot_finished (list), 
-                   robot_succeeded (list)
+                   robot_succeeded (list),
+                   degub (various)
         """
         assert len(actions) == self.robot_count, 'Wrong actions dimension!'
         # generate twists, also get separate values of actions
@@ -195,22 +186,32 @@ class Enviroment():
         actions_linear_x = actions.T[1]
         actions_angular_z = actions.T[0]
         # publish twists
+        # self.pause()
         for i in range(self.robot_count):
-                self.publisher_turtlebots[i].publish(twists[i])
+            self.publisher_turtlebots[i].publish(twists[i])
         # start of timing !!! changed to rospy time !!!
         start_time = rospy.get_time()
         running_time = 0
         # move robots with action for time_step        
-        self.unpause()
+        # self.unpause()
         while(running_time < time_step):
             self.rate.sleep()
             running_time = rospy.get_time() - start_time
-        self.pause()
+        # self.pause()
+        # send empty commands to robots
+        for i in range(self.robot_count):
+            self.publisher_turtlebots[i].publish(self.command_empty)
+        # self.unpause()
         # read current positions of robots
         model_state = self.position_info_getter.get_msg()
         robot_indexes = self.get_robot_indexes_from_model_state(model_state)
-        x, y, theta = self.get_positions_from_model_state(model_state, 
-                                                          robot_indexes)
+        x, y, theta, correct = self.get_positions_from_model_state(model_state, 
+                                                                   robot_indexes)
+        # check for damaged robots
+        if np.any(np.isnan(correct)):
+            print('ERROR: Enviroment: nan robot twist detected!')
+            return None, None, None, None, True
+
         theta = theta % (2 * np.pi)
         # get current distance to goal
         robot_target_distances = self.get_distance(x, self.x_targets, 
@@ -267,7 +268,32 @@ class Enviroment():
             if self.robot_finished[i]:
                 self.reset(i)
 
-        return states, rewards, robot_finished, self.robot_succeeded, (x, y, distances_help, robot_target_distances)
+        return states, rewards, robot_finished, self.robot_succeeded, False
+
+    def init_subscribers(self
+        ) -> None:
+        # basic settings
+        self.node = rospy.init_node('turtlebot_env', anonymous=True)
+        self.rate = rospy.Rate(100)
+        # ...
+        rospy.wait_for_service('/gazebo/pause_physics')
+        self.pause = rospy.ServiceProxy('/gazebo/pause_physics', Empty)
+        rospy.wait_for_service('/gazebo/unpause_physics')
+        self.unpause = rospy.ServiceProxy('/gazebo/unpause_physics', Empty)
+        # positional info getter
+        self.position_info_getter = InfoGetter()
+        self._position_subscriber = rospy.Subscriber("/gazebo/model_states",
+                                                     ModelStates,
+                                                     self.position_info_getter)
+        # lasers info getters, subscribers unused
+        self.laser_info_getter = [InfoGetter() for i in range(self.robot_count)]
+        self._laser_subscriber = \
+            [rospy.Subscriber('/tb3_{}/scan'.format(i),
+                              LaserScan,
+                              self.laser_info_getter[i])
+            for i in range(self.robot_count)]
+        rospy.wait_for_message('/tb3_0/scan', LaserScan)
+        return
 
     def create_model_state(self, 
         name: str,
@@ -367,19 +393,22 @@ class Enviroment():
         Returns:
             tuple: x, y, theta ndarrays of robots
         """
-        x, y, theta = [], [], []
+        x, y, theta, correct = [], [], [], []
         for index in robot_indexes:
             pose = model_state.pose[index]
+            twist = model_state.twist[index]
             x.append(pose.position.x)
             y.append(pose.position.y)
             theta.append(euler_from_quaternion((pose.orientation.x, 
                                                 pose.orientation.y, 
                                                 pose.orientation.z, 
                                                 pose.orientation.w,))[2])
+            correct.append(twist.angular.x)
         x = np.array(x)
         y = np.array(y)
         theta = np.array(theta)
-        return x, y, theta
+        correct = np.array(correct)
+        return x, y, theta, correct
 
     def get_angle(self,
         x_0: np.ndarray,
@@ -439,7 +468,7 @@ class Enviroment():
         """
         model_state = self.position_info_getter.get_msg()
         robot_indexes = self.get_robot_indexes_from_model_state(model_state)
-        x, y, theta = self.get_positions_from_model_state(model_state, 
+        x, y, theta, _ = self.get_positions_from_model_state(model_state, 
                                                           robot_indexes)
         # get current distance to goal
         robot_target_distances = self.get_distance(x, self.x_targets, 

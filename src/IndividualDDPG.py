@@ -29,9 +29,11 @@ class IndividualDDPG():
         # random actions
         self.EPSILON = 0.9
         self.EPSILON_DECAY = 0.99995
-        # init experiment values
+        # init experiment and error values
         self.episode_count = episode_count
         self.episode_step_count = episode_step_count
+        self.episode_error = 0
+        self.episode_step_error = 0
         # init some world values
         self.robot_count = world.robot_count
         # TODO seed random / numpy random
@@ -91,18 +93,27 @@ class IndividualDDPG():
         return
 
     def run(self
-        ) -> None:
+        ) -> tuple:
         self.init_paths()
         self.parameters_save()
         self.print_starting_info()
-        for episode in range(self.episode_count):
+        if self.episode_step_error != 0:
+            # print('SUBSCRIBERS')
+            # self.enviroment.init_subscribers()
+            pass
+        for episode in range(self.episode_error, self.episode_count):
             self.enviroment.reset()
             current_states = self.enviroment.get_starting_states()
             total_rewards = np.zeros(self.robot_count)
-            for step in range(self.episode_step_count):
+            for step in range(self.episode_step_error, self.episode_step_count):
                 actions = self.agents_actions(current_states)
                 actions = self.actions_add_random(actions)
-                new_states, rewards, robots_finished, robots_succeeded_once, debug = self.enviroment.step(actions)
+                new_states, rewards, robots_finished, robots_succeeded_once, error = self.enviroment.step(actions)
+                if error:
+                    self.episode_error = episode
+                    self.episode_step_error = step
+                    print('ERROR: DDPG: Death robot detected during {}.{}'.format(episode, step))
+                    return False, episode, step
                 total_rewards += rewards
                 self.buffers_save_transitions(current_states, actions, rewards, new_states, robots_finished)
                 if step % self.TIME_TRAIN == 0:
@@ -111,18 +122,6 @@ class IndividualDDPG():
                     self.agents_target()
                 if step % self.TIME_LOGGER == 0:
                     print('{}.{}'.format(episode, step))
-                if self.debug and (step == 0 or step == 1 or step == 2):
-                    print('New states: {}'.format(new_states))
-                    print('Rewards: {}'.format(rewards))
-                    print('Finished: {}'.format(robots_finished))
-                    print('Success: {}'.format(robots_succeeded_once))
-                    print('Debug: {}'.format(debug))
-                if step == 254:
-                    print('x.254 Finished: {}'.format(robots_finished))
-                    print('x.254 Success: {}'.format(robots_succeeded_once))
-                if step == 255:
-                    print('x.255 Finished: {}'.format(robots_finished))
-                    print('x.255 Success: {}'.format(robots_succeeded_once))
                 current_states = new_states
             self.data_collect(episode, total_rewards, robots_succeeded_once)
             print('Average episode rewards: {}'.format(self.average_rewards[episode]))
@@ -131,9 +130,10 @@ class IndividualDDPG():
             if episode % self.TIME_SAVE == 0:
                 self.agents_save(episode)
                 self.data_save(episode)
+        self.enviroment.reset()
         self.agents_save()
         self.data_save()
-        return
+        return True, None, None
 
     def test(self
         ) -> None:
@@ -252,9 +252,9 @@ class IndividualDDPG():
         ) -> None:
         if episode is None:
             episode = 'final'
-        np.save(self.path_log + '/rewards-{}'.format(episode), 
+        np.save(self.path_log + '/rewards'.format(), 
                 self.average_rewards)
-        np.save(self.path_log + '/succeded-{}'.format(episode),
+        np.save(self.path_log + '/succeded'.format(),
                 self.robots_succeeded_once)
         return
 
