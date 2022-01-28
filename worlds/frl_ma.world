@@ -80,7 +80,7 @@
         <constraints>
           <cfm>1e-05</cfm>
           <erp>0.2</erp>
-          <contact_max_correcting_vel>1</contact_max_correcting_vel>
+          <contact_max_correcting_vel>2000</contact_max_correcting_vel>
           <contact_surface_layer>0.01</contact_surface_layer>
         </constraints>
       </ode>

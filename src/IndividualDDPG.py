@@ -27,8 +27,8 @@ class IndividualDDPG():
         self.TIME_LOGGER = 16
         self.TIME_SAVE = 50
         # random actions
-        self.EPSILON = 0.9
-        self.EPSILON_DECAY = 0.99995
+        self.EPSILON = 0.1 # 0.9
+        self.EPSILON_DECAY = 1 # 0.99995
         # init experiment and error values
         self.episode_count = episode_count
         self.episode_step_count = episode_step_count
@@ -36,11 +36,8 @@ class IndividualDDPG():
         self.episode_step_error = 0
         # init some world values
         self.robot_count = world.robot_count
-        # TODO seed random / numpy random
         # init enviroment and dimensions
-        self.enviroment = Enviroment(world)
-        self.observation_dimension = self.enviroment.observation_dimension
-        self.action_dimension = self.enviroment.action_dimension
+        self.init_enviroment()
         # init buffers and agents
         self.BUFFER_SIZE = 50000
         self.buffers = self.init_buffers()
@@ -50,6 +47,17 @@ class IndividualDDPG():
         self.init_data()
         # debugging
         self.debug = False
+        print(self.buffers)
+        print(self.agents)
+        # paths
+        self.init_paths()
+        return
+
+    def init_enviroment(self
+        ) -> None:
+        self.enviroment = Enviroment(world)
+        self.observation_dimension = self.enviroment.observation_dimension
+        self.action_dimension = self.enviroment.action_dimension
         return
 
     def init_buffers(self
@@ -92,22 +100,24 @@ class IndividualDDPG():
         self.robots_succeeded_once = np.zeros((self.episode_count, self.robot_count), dtype=bool)        
         return
 
+    def terminate_enviroment(
+        ) -> None:
+        self.enviroment = None
+        return
+
     def run(self
         ) -> tuple:
-        self.init_paths()
         self.parameters_save()
         self.print_starting_info()
-        if self.episode_step_error != 0:
-            # print('SUBSCRIBERS')
-            # self.enviroment.init_subscribers()
-            pass
         for episode in range(self.episode_error, self.episode_count):
             self.enviroment.reset()
             current_states = self.enviroment.get_starting_states()
             total_rewards = np.zeros(self.robot_count)
+            if self.episode_error != episode:
+                self.episode_step_error = 0
             for step in range(self.episode_step_error, self.episode_step_count):
                 actions = self.agents_actions(current_states)
-                actions = self.actions_add_random(actions)
+                actions = self.actions_add_random(actions, episode)
                 new_states, rewards, robots_finished, robots_succeeded_once, error = self.enviroment.step(actions)
                 if error:
                     self.episode_error = episode
@@ -177,7 +187,8 @@ class IndividualDDPG():
         return
 
     def actions_add_random(self, 
-        actions: np.ndarray
+        actions: np.ndarray,
+        episode: int
         ) -> np.ndarray:
         # get current actions
         angles_a = actions[:, 0]
@@ -192,8 +203,14 @@ class IndividualDDPG():
         linears = linears_a + linears_r
         angles = np.clip(angles, -1, 1)
         linears = np.clip(linears, 0, 1)
+
+        # SET ALL LINEAR SPEEDS TO 0.5 
+        # linears = 0.5 * np.ones(self.robot_count)
+        
         new_actions = np.array((angles, linears)).T
         # update epsilon
+        if episode == 500:
+            self.EPSILON = 0.0
         self.EPSILON *= self.EPSILON_DECAY
         return new_actions
 

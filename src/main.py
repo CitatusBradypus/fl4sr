@@ -3,6 +3,7 @@ import sys
 import os
 import time
 import rospy
+import random
 import roslaunch
 import numpy as np
 HOME = os.environ['HOME']
@@ -17,20 +18,11 @@ from worlds import TURTLEBOT_WORLD
 # prepare setting and values
 np.set_printoptions(precision=3, suppress=True)
 
-path_data = '/home/pikmanjan/catkin_ws/src/fl4sr/src/data'
-paths_actor = [path_data + '/FederatedLearningDDPG-20211129-230152/weights/actor-final-0.pkl',
-               path_data + '/FederatedLearningDDPG-20211129-230152/weights/actor-final-1.pkl',
-               path_data + '/FederatedLearningDDPG-20211129-230152/weights/actor-final-2.pkl',
-               path_data + '/FederatedLearningDDPG-20211129-230152/weights/actor-final-3.pkl',
-               path_data + '/FederatedLearningDDPG-20211129-230152/weights/actor-final-4.pkl',
-               path_data + '/FederatedLearningDDPG-20211129-230152/weights/actor-final-5.pkl']
-paths_critic = [path_data + '/FederatedLearningDDPG-20211129-230152/weights/critic-final-0.pkl',
-                path_data + '/FederatedLearningDDPG-20211129-230152/weights/critic-final-1.pkl',
-                path_data + '/FederatedLearningDDPG-20211129-230152/weights/critic-final-2.pkl',
-                path_data + '/FederatedLearningDDPG-20211129-230152/weights/critic-final-3.pkl',
-                path_data + '/FederatedLearningDDPG-20211129-230152/weights/critic-final-4.pkl',
-                path_data + '/FederatedLearningDDPG-20211129-230152/weights/critic-final-5.pkl']
-
+SEEDS = [0, 1, 2, 3, 4]
+DDPGS = [IndividualDDPG,
+         SharedExperienceDDPG,
+         SharedNetworkDDPG,
+         FederatedLearningDDPG]
 PROGRESS_REWARD_FACTORS = [20, 40, 60, 80]
 LEARNING_RATES = [0.1, 0.01, 0.001]
 
@@ -49,12 +41,13 @@ time.sleep(5)
 
 # run experiment
 print('Simulation: Ready to run!')
-for factor in PROGRESS_REWARD_FACTORS:
-    test = FederatedLearningDDPG(750, 256, TURTLEBOT_WORLD)
-    test.enviroment.PROGRESS_REWARD_FACTOR = factor
+for index in range(4):
+    random.seed(3)
+    np.random.seed(3)
+    test = DDPGS[index](600, 256, TURTLEBOT_WORLD)
     success = False
     while not success:
-        success, episode, step = test.run()
+        success, _, _ = test.run()
         if not success:
             # simulation failed, restart
             print('Simulation: Failed! Restaring...')

@@ -14,7 +14,7 @@ import numpy as np
 class DDPG:
     """Deep deterministic policy gradient.
     """
-    
+        
     def __init__(self,
         replay_buffer,
         state_dimension: int,
@@ -34,8 +34,8 @@ class DDPG:
         self.replay_buffer = replay_buffer
         # other parameters
         # actor, critic parameters
-        self.ACTOR_HIDDEN_LAYERS = [512, 512, 512]
-        self.CRITIC_HIDDEN_LAYERS = [512, 512, 512]
+        self.ACTOR_HIDDEN_LAYERS = [64, 64, 64]
+        self.CRITIC_HIDDEN_LAYERS = [64, 64, 64]
         # training parameters
         self.LEARNING_RATE = 0.0001
         self.BATCH_SIZE = 512

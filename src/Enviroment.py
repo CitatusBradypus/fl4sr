@@ -39,8 +39,8 @@ class Enviroment():
         self.COLLISION_RANGE = 0.25
         self.GOAL_RANGE = 0.5
         self.REWARD_GOAL = 100.0
-        self.REWARD_COLLISION = -100.0
-        self.PROGRESS_REWARD_FACTOR = 100.0
+        self.REWARD_COLLISION = -10.0
+        self.PROGRESS_REWARD_FACTOR = 40.0
         # simulation services
         # rospy.wait_for_service('/gazebo/reset_simulation')
         # self.reset_simulation = rospy.ServiceProxy('/gazebo/reset_simulation', Empty)
@@ -158,7 +158,7 @@ class Enviroment():
         # kinda cheeky but it works on my machine :D
         self.unpause()
         rospy.wait_for_message('/tb3_0/scan', LaserScan)
-        # self.pause()
+        self.pause()
         return
     
     def step(self,
@@ -193,11 +193,11 @@ class Enviroment():
         start_time = rospy.get_time()
         running_time = 0
         # move robots with action for time_step        
-        # self.unpause()
+        self.unpause()
         while(running_time < time_step):
             self.rate.sleep()
             running_time = rospy.get_time() - start_time
-        # self.pause()
+        self.pause()
         # send empty commands to robots
         for i in range(self.robot_count):
             self.publisher_turtlebots[i].publish(self.command_empty)
