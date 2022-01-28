@@ -11,12 +11,18 @@ sys.path.append(HOME + '/catkin_ws/src/fl4sr/src')
 
 
 COMMAND_LIST = [
-    ['rosrun', 
+    ['rosrun', 'fl4sr', 
      'experiment.py', 
      'IDDPG'],
-    ['rosrun', 
+    ['rosrun', 'fl4sr', 
      'experiment.py', 
-     'SEDDPG']
+     'SEDDPG'],
+    ['rosrun', 'fl4sr',
+     'experiment.py',
+     'SNDDPG'],
+    ['rosrun', 'fl4sr',
+     'experiment.py',
+     'FLDDPG']
 ]
 
 for command in COMMAND_LIST:

@@ -24,12 +24,14 @@ METHODS = {'IDDPG': IndividualDDPG,
            'SEDDPG': SharedExperienceDDPG,
            'SNDDPG': SharedNetworkDDPG,
            'FLDDPG': FederatedLearningDDPG}
-EPISODE_COUNT = 600
+EPISODE_COUNT = 10
 EPISODE_STEP_COUNT = 256
 SEEDS = [0, 1, 2, 3, 4]
 
 
 def experiment(
+        method: str,
+        restart: bool
     ) -> bool:
     """[summary]
 
@@ -55,8 +57,24 @@ def experiment(
     np.random.seed(3)
     # RUN
     print('Simulation: Ready to run!')
+    if restart:
+        with open('experiment.pickle', 'rb') as f:
+            DDPG = pickle.load(f)
+        open('experiment.pickle', 'wb').close()
+        DDPG.init_enviroment()
+    else:
+        DDPG = METHODS[args.method](EPISODE_COUNT, EPISODE_STEP_COUNT, TURTLEBOT_WORLD)
     success, _, _ = DDPG.run()
     roscore_launch.shutdown()
+    # RESULTS
+    if not success:
+        DDPG.terminate_enviroment()
+        # save DDPG class
+        with open('experiment.pickle', 'wb') as f:
+            pickle.dump(DDPG, f)
+        # write restart to file
+        with open('main.info', 'w') as f:
+            f.write('RESTART')
     return success
 
 if __name__ == '__main__':
@@ -76,21 +94,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
     # ARGUMENTS
     assert args.method in METHODS, 'ERROR: Unknown method name.'
-    if args.restart:
-        # load saved class and clear it
-        with open('experiment.pickle', 'rb') as f:
-            DDPG = pickle.load(f)
-        open('experiment.pickle', 'wb').close()
-        DDPG.init_enviroment()
     # EXPERIMENT
-    DDPG = METHODS[args.method](EPISODE_COUNT, EPISODE_STEP_COUNT, TURTLEBOT_WORLD)
-    success = experiment()
-    # RESULTS
-    if not success:
-        DDPG.terminate_enviroment()
-        # save DDPG class
-        with open('experiment.pickle', 'wb') as f:
-            pickle.dump(DDPG, f)
-        # write restart to file
-        with open('main.info', 'w') as f:
-            f.write('RESTART')
+    experiment(args.method, args.restart)
+

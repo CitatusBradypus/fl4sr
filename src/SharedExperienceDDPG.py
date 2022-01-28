@@ -16,9 +16,8 @@ class SharedExperienceDDPG(IndividualDDPG):
         episode_step_count: int, 
         world: World
         ) -> None:
+        self.NAME = 'SEDDPG'
         super().__init__(episode_count, episode_step_count, world)
-        # loggers
-        self.NAME = 'SharedExperienceDDPG'
         return
 
     def init_buffers(self

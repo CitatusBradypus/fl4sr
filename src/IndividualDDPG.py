@@ -11,6 +11,7 @@ from worlds import World
 from DDPG import DDPG
 from buffers import BasicBuffer, Transition
 
+
 class IndividualDDPG():
     """Individial DDPG algorithm. Serves as basis for other algorithms.
     """
@@ -37,13 +38,15 @@ class IndividualDDPG():
         # init some world values
         self.robot_count = world.robot_count
         # init enviroment and dimensions
-        self.init_enviroment(world)
+        self.world = world
+        self.init_enviroment()
         # init buffers and agents
         self.BUFFER_SIZE = 50000
         self.buffers = self.init_buffers()
         self.agents = self.init_agents()
         # loggers
-        self.NAME = 'IndividualDDPG'
+        if not hasattr(self, 'NAME'):
+            self.NAME = 'IDDPG'
         self.init_data()
         # debugging
         self.debug = False
@@ -53,10 +56,9 @@ class IndividualDDPG():
         self.init_paths()
         return
 
-    def init_enviroment(self,
-        world: World
+    def init_enviroment(self
         ) -> None:
-        self.enviroment = Enviroment(world)
+        self.enviroment = Enviroment(self.world)
         self.observation_dimension = self.enviroment.observation_dimension
         self.action_dimension = self.enviroment.action_dimension
         return

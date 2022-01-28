@@ -16,9 +16,8 @@ class SharedNetworkDDPG(IndividualDDPG):
         episode_step_count: int, 
         world: World
         ) -> None:
+        self.NAME = 'SNDDPG'
         super().__init__(episode_count, episode_step_count, world)
-        # loggers
-        self.NAME = 'SharedNetworkDDPG'
         return
 
     def init_buffers(self

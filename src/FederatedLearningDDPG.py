@@ -13,6 +13,10 @@ from DDPG import DDPG
 from buffers import BasicBuffer, Transition
 import numpy as np
 
+
+Means = namedtuple('Averages', 'aw, ab, cw, cb')
+
+
 class FederatedLearningDDPG(IndividualDDPG):
 
     def __init__(self, 
@@ -20,16 +24,14 @@ class FederatedLearningDDPG(IndividualDDPG):
         episode_step_count: int, 
         world: World
         ) -> None:
+        self.NAME = 'FLDDPG'
         super().__init__(episode_count, episode_step_count, world)
         # get model coutns
         self.agents_count = len(self.agents)
         self.actor_layers_count = len(self.agents[0].actor.layers)
         self.critic_layers_count = len(self.agents[0].critic.layers)
         # averaging params
-        self.Means = namedtuple('Awerages', 'aw, ab, cw, cb')
         self.TAU = 0.5
-        # loggers
-        self.NAME = 'FederatedLearningDDPG'
         return
 
     def agents_update(self
@@ -65,8 +67,8 @@ class FederatedLearningDDPG(IndividualDDPG):
                     critic_mean_bias[i] += self.agents[j].critic.layers[i].bias.data.clone()
                 critic_mean_weights[i] = critic_mean_weights[i] / self.agents_count
                 critic_mean_bias[i] = critic_mean_bias[i] / self.agents_count
-        return self.Means(actor_mean_weights, actor_mean_bias, 
-                          critic_mean_weights, critic_mean_bias)
+        return Means(actor_mean_weights, actor_mean_bias, 
+                     critic_mean_weights, critic_mean_bias)
 
     def agents_update_models(self, 
         means: tuple
