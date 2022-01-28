@@ -37,7 +37,7 @@ class IndividualDDPG():
         # init some world values
         self.robot_count = world.robot_count
         # init enviroment and dimensions
-        self.init_enviroment()
+        self.init_enviroment(world)
         # init buffers and agents
         self.BUFFER_SIZE = 50000
         self.buffers = self.init_buffers()
@@ -53,7 +53,8 @@ class IndividualDDPG():
         self.init_paths()
         return
 
-    def init_enviroment(self
+    def init_enviroment(self,
+        world: World
         ) -> None:
         self.enviroment = Enviroment(world)
         self.observation_dimension = self.enviroment.observation_dimension
@@ -100,7 +101,7 @@ class IndividualDDPG():
         self.robots_succeeded_once = np.zeros((self.episode_count, self.robot_count), dtype=bool)        
         return
 
-    def terminate_enviroment(
+    def terminate_enviroment(self
         ) -> None:
         self.enviroment = None
         return
