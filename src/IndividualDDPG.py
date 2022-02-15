@@ -151,25 +151,37 @@ class IndividualDDPG():
 
     def test(self
         ) -> None:
-        #TODO REWORK, COPY FROM LEARNING
-        self.print_starting_info(training=False)
-        for episode in range(self.episode_count):
+        self.parameters_save()
+        self.print_starting_info()
+        for episode in range(self.episode_error, self.episode_count):
             self.enviroment.reset()
             current_states = self.enviroment.get_starting_states()
             total_rewards = np.zeros(self.robot_count)
-            for step in range(self.episode_step_count):
+            if self.episode_error != episode:
+                self.episode_step_error = 0
+            for step in range(self.episode_step_error, self.episode_step_count):
                 actions = self.agents_actions(current_states)
-                new_states, rewards, robots_finished, robots_succeeded_once = self.enviroment.step(actions)
+                actions = self.actions_add_random(actions, episode)
+                new_states, rewards, robots_finished, robots_succeeded_once, error = self.enviroment.step(actions)
+                if error:
+                    self.episode_error = episode
+                    self.episode_step_error = step
+                    print('ERROR: DDPG: Death robot detected during {}.{}'.format(episode, step))
+                    return False, episode, step
                 total_rewards += rewards
                 if step % self.TIME_LOGGER == 0:
                     print('{}.{}'.format(episode, step))
+                    print(actions)
                 current_states = new_states
             self.data_collect(episode, total_rewards, robots_succeeded_once)
             print('Average episode rewards: {}'.format(self.average_rewards[episode]))
             if episode % self.TIME_SAVE == 0:
+                self.agents_save(episode)
                 self.data_save(episode)
+        self.enviroment.reset()
+        self.agents_save()
         self.data_save()
-        return
+        return True, None, None
 
     def agents_actions(self,
         states: np.ndarray,
@@ -272,8 +284,6 @@ class IndividualDDPG():
     def data_save(self, 
         episode:int=None
         ) -> None:
-        if episode is None:
-            episode = 'final'
         np.save(self.path_log + '/rewards'.format(), 
                 self.average_rewards)
         np.save(self.path_log + '/succeded'.format(),

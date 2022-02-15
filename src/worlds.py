@@ -87,3 +87,31 @@ TURTLEBOT_WORLD_5 = World(
                       [-4.0, -5.0], 
                       [-16.0, -5.0]]
 )
+
+EVAL_WORLD_0 = World(
+    robot_alives=[True],
+    x_starts=[0.0],
+    y_starts=[0.0],
+    target_positions=[[5.0, 5.0]]
+)
+
+EVAL_WORLD_1 = World(
+    robot_alives=[True],
+    x_starts=[0.0],
+    y_starts=[0.0],
+    target_positions=[[-5.0, 5.0]]
+)
+
+EVAL_WORLD_2 = World(
+    robot_alives=[True],
+    x_starts=[0.0],
+    y_starts=[0.0],
+    target_positions=[[5.0, -5.0]]
+)
+
+EVAL_WORLD_3 = World(
+    robot_alives=[True],
+    x_starts=[0.0],
+    y_starts=[0.0],
+    target_positions=[[-5.0, -5.0]]
+)
