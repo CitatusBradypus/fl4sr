@@ -326,6 +326,7 @@ class IndividualDDPG():
         print('----------------')
         print('Episodes = {}'.format(self.episode_count))
         print('Steps per episode = {}'.format(self.episode_step_count))
+        print('Running robots = {}'.format(self.world.robot_alives))
         print('Training = {}'.format(training))
         print('Buffers = {}'.format(len(self.buffers)))
         print('Agents = {}'.format(len(self.agents)))

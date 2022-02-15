@@ -11,18 +11,10 @@ sys.path.append(HOME + '/catkin_ws/src/fl4sr/src')
 
 
 COMMAND_LIST = [
-    ['rosrun', 'fl4sr', 
-     'experiment.py', 
-     'IDDPG'],
-    ['rosrun', 'fl4sr', 
-     'experiment.py', 
-     'SEDDPG'],
-    #['rosrun', 'fl4sr',
-    # 'experiment.py',
-    # 'SNDDPG'],
-    #['rosrun', 'fl4sr',
-    # 'experiment.py',
-    # 'FLDDPG']
+    #['rosrun', 'fl4sr', 'experiment.py', 'IDDPG'],
+    #['rosrun', 'fl4sr', 'experiment.py', 'SEDDPG'],
+    ['rosrun', 'fl4sr', 'experiment.py', 'SNDDPG'],
+    #['rosrun', 'fl4sr', 'experiment.py', 'FLDDPG']
 ]
 # Change commands
 SEEDS = [10, 11, 12, 13, 14]

@@ -53,7 +53,7 @@ class Enviroment():
         self.pause()
         # world settings
         self.robot_count = world.robot_count
-        self.robot_alive = world.robot_alive
+        self.robot_alives = world.robot_alives
         self.robot_indexes = world.robot_indexes
 
         self.x_starts = world.x_starts
@@ -339,7 +339,7 @@ class Enviroment():
         Returns:
             list: Robot indexes. ('tb_2' index is list[2])
         """
-        robots = [None for i in range(self.robot_count)]
+        robots = [None for i in range(len(self.robot_alives))]
         if model_state is None:
             model_state = self.position_info_getter.get_msg()
         for i in range(len(model_state.name)):

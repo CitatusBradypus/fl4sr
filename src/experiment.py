@@ -27,7 +27,7 @@ METHODS = {'IDDPG': IndividualDDPG,
            'FLDDPG': FederatedLearningDDPG}
 EPISODE_COUNT = 500
 EPISODE_STEP_COUNT = 1024
-
+WORLD = TURTLEBOT_WORLD_6
 
 def experiment(
         method: str,
@@ -65,7 +65,7 @@ def experiment(
         open('experiment.pickle', 'wb').close()
         DDPG.init_enviroment()
     else:
-        DDPG = METHODS[args.method](EPISODE_COUNT, EPISODE_STEP_COUNT, TURTLEBOT_WORLD_6)
+        DDPG = METHODS[args.method](EPISODE_COUNT, EPISODE_STEP_COUNT, WORLD)
     success, _, _ = DDPG.run()
     roscore_launch.shutdown()
     # RESULTS
