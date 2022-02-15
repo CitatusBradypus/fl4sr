@@ -24,19 +24,19 @@ METHODS = {'IDDPG': IndividualDDPG,
            'SEDDPG': SharedExperienceDDPG,
            'SNDDPG': SharedNetworkDDPG,
            'FLDDPG': FederatedLearningDDPG}
-EPISODE_COUNT = 10
-EPISODE_STEP_COUNT = 256
-SEEDS = [0, 1, 2, 3, 4]
+EPISODE_COUNT = 500
+EPISODE_STEP_COUNT = 1024
 
 
 def experiment(
         method: str,
-        restart: bool
+        restart: bool,
+        seed: int
     ) -> bool:
-    """[summary]
+    """Run experiment with specified values.
 
     Returns:
-        bool: [description]
+        bool: If program finished correctly.
     """
     # ROS
     # launch roscore
@@ -53,8 +53,9 @@ def experiment(
     time.sleep(5)
     # SETTINGS
     # set seeds
-    random.seed(3)
-    np.random.seed(3)
+    if seed is not None:
+        random.seed(seed)
+        np.random.seed(seed)
     # RUN
     print('Simulation: Ready to run!')
     if restart:
@@ -91,9 +92,13 @@ if __name__ == '__main__':
         '--restart', 
         type=bool,
         help='Use saved class due to error.')
+    parser.add_argument(
+        '--seed',
+        type=int,
+        help='Seed for random generators.')
     args = parser.parse_args()
     # ARGUMENTS
     assert args.method in METHODS, 'ERROR: Unknown method name.'
     # EXPERIMENT
-    experiment(args.method, args.restart)
+    experiment(args.method, args.restart, args.seed)
 

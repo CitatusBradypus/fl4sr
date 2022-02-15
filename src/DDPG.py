@@ -37,7 +37,8 @@ class DDPG:
         self.ACTOR_HIDDEN_LAYERS = [64, 64, 64]
         self.CRITIC_HIDDEN_LAYERS = [64, 64, 64]
         # training parameters
-        self.LEARNING_RATE = 0.0001
+        self.LEARNING_RATE_ACTOR = 0.001
+        self.LEARNING_RATE_CRITIC = 0.001
         self.BATCH_SIZE = 512
         self.GAMMA = 0.9
         # update parameters
@@ -50,7 +51,7 @@ class DDPG:
                                   self.ACTOR_HIDDEN_LAYERS)
         self.actor_target.cuda()
         self.actor_optimizer = optim.Adam(self.actor.parameters(), 
-                                          self.LEARNING_RATE)
+                                          self.LEARNING_RATE_ACTOR)
         update_parameters(self.actor_target, self.actor)
         # critic networks init and cuda
         self.critic = Critic(self.state_dimension + self.action_dimension, 
@@ -60,7 +61,7 @@ class DDPG:
                                     self.CRITIC_HIDDEN_LAYERS)
         self.critic_target.cuda()
         self.critic_optimizer = optim.Adam(self.critic.parameters(),
-                                           self.LEARNING_RATE)
+                                           self.LEARNING_RATE_CRITIC)
         update_parameters(self.critic_target, self.critic)
         return
 

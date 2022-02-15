@@ -24,12 +24,12 @@ class IndividualDDPG():
         # global like variables
         self.TIME_TRAIN = 5
         self.TIME_TARGET = 5
-        self.TIME_UPDATE = 10
+        self.TIME_UPDATE = 1
         self.TIME_LOGGER = 16
         self.TIME_SAVE = 50
         # random actions
-        self.EPSILON = 0.1 # 0.9
-        self.EPSILON_DECAY = 1 # 0.99995
+        self.EPSILON = 0.9
+        self.EPSILON_DECAY = 0.99999
         # init experiment and error values
         self.episode_count = episode_count
         self.episode_step_count = episode_step_count
@@ -135,6 +135,7 @@ class IndividualDDPG():
                     self.agents_target()
                 if step % self.TIME_LOGGER == 0:
                     print('{}.{}'.format(episode, step))
+                    print(actions)
                 current_states = new_states
             self.data_collect(episode, total_rewards, robots_succeeded_once)
             print('Average episode rewards: {}'.format(self.average_rewards[episode]))
@@ -199,21 +200,21 @@ class IndividualDDPG():
         # where to use randoms and generate them
         randoms = np.random.uniform(0, 1, self.robot_count)
         use_randoms = np.where(randoms < self.EPSILON, 1, 0)
-        angles_r = use_randoms * np.random.uniform(-0.5, 0.5, self.robot_count)
-        linears_r = use_randoms * np.random.uniform(0, 0.5, self.robot_count)
+        angles_r = np.random.uniform(-1, 1, self.robot_count)
+        linears_r = np.random.uniform(0, 1, self.robot_count)
         # add randoms and clip
-        angles = angles_a + angles_r
-        linears = linears_a + linears_r
+        angles = (1 - use_randoms) * angles_a + use_randoms * angles_r
+        linears = (1 - use_randoms) * linears_a + use_randoms * linears_r
         angles = np.clip(angles, -1, 1)
         linears = np.clip(linears, 0, 1)
-
+        #linears = linears * 0.9 + 0.1
         # SET ALL LINEAR SPEEDS TO 0.5 
-        # linears = 0.5 * np.ones(self.robot_count)
+        #linears = 0.125 * np.ones(self.robot_count)
         
         new_actions = np.array((angles, linears)).T
         # update epsilon
-        if episode == 500:
-            self.EPSILON = 0.0
+        # if episode == 900:
+        #     self.EPSILON = 0.0
         self.EPSILON *= self.EPSILON_DECAY
         return new_actions
 
@@ -301,7 +302,8 @@ class IndividualDDPG():
         # ddpg parameters
         parameters['ACTOR_HIDDEN_LAYERS'] = self.agents[0].ACTOR_HIDDEN_LAYERS
         parameters['CRITIC_HIDDEN_LAYERS'] = self.agents[0].CRITIC_HIDDEN_LAYERS
-        parameters['LEARNING_RATE'] = self.agents[0].LEARNING_RATE
+        parameters['LEARNING_RATE_ACTOR'] = self.agents[0].LEARNING_RATE_ACTOR
+        parameters['LEARNING_RATE_CRITIC'] = self.agents[0].LEARNING_RATE_CRITIC
         parameters['BATCH_SIZE'] = self.agents[0].BATCH_SIZE
         parameters['GAMMA'] = self.agents[0].GAMMA
         parameters['TAU_TARGET'] = self.agents[0].TAU

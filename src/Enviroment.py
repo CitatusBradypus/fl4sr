@@ -199,8 +199,6 @@ class Enviroment():
             running_time = rospy.get_time() - start_time
         self.pause()
         # send empty commands to robots
-        for i in range(self.robot_count):
-            self.publisher_turtlebots[i].publish(self.command_empty)
         # self.unpause()
         # read current positions of robots
         model_state = self.position_info_getter.get_msg()
@@ -247,6 +245,7 @@ class Enviroment():
         # distance rewards
         # CHECK for possible huge value after reset
         reward_distance = self.PROGRESS_REWARD_FACTOR * (self.robot_target_distances_previous - robot_target_distances)
+        # reward_distance = - np.e ** (0.25 * robot_target_distances)
         # goal reward
         reward_goal = np.zeros(self.robot_count)
         reward_goal[robot_target_distances < self.GOAL_RANGE] = self.REWARD_GOAL
@@ -357,8 +356,8 @@ class Enviroment():
         """
         assert len(action) == 2, 'Wrong action dimension!'
         twist = Twist()
-        twist.linear.x = action[1]
-        twist.angular.z = action[0] * (np.pi / 2)
+        twist.linear.x = action[1] * 0.25
+        twist.angular.z = action[0] # * (np.pi / 2)
         return twist
 
     def get_distance(self, 
