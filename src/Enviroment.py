@@ -53,6 +53,8 @@ class Enviroment():
         self.pause()
         # world settings
         self.robot_count = world.robot_count
+        self.robot_alive = world.robot_alive
+        self.robot_indexes = world.robot_indexes
 
         self.x_starts = world.x_starts
         self.y_starts = world.y_starts
@@ -62,17 +64,17 @@ class Enviroment():
         self.y_targets = np.array(self.targets).T[1]
         # create restart enviroment messages
         self.reset_tb3_messages = \
-            [self.create_model_state('tb3_{}'.format(i), 
-                                     self.x_starts[i], 
-                                     self.y_starts[i],
+            [self.create_model_state('tb3_{}'.format(rid), 
+                                     self.x_starts[id], 
+                                     self.y_starts[id],
                                      -0.2)
-            for i in range(self.robot_count)]
+            for id, rid in enumerate(self.robot_indexes)]
         self.reset_target_messages = \
-            [self.create_model_state('target_{}'.format(i), 
-                                     self.targets[i][0], 
-                                     self.targets[i][1], 
+            [self.create_model_state('target_{}'.format(rid), 
+                                     self.targets[id][0], 
+                                     self.targets[id][1], 
                                      0)
-            for i in range(self.robot_count)]
+            for id, rid in enumerate(self.robot_indexes)]
         self.command_empty = Twist()
 
         # basic settings
@@ -88,7 +90,7 @@ class Enviroment():
             [rospy.Publisher('/tb3_{}/cmd_vel'.format(i), 
                              Twist, 
                              queue_size=1) 
-            for i in range(self.robot_count)]
+            for i in self.robot_indexes]
         # positional info getter
         self.position_info_getter = InfoGetter()
         self._position_subscriber = rospy.Subscriber("/gazebo/model_states", 
@@ -97,10 +99,10 @@ class Enviroment():
         # lasers info getters, subscribers unused
         self.laser_info_getter = [InfoGetter() for i in range(self.robot_count)]
         self._laser_subscriber = \
-            [rospy.Subscriber('/tb3_{}/scan'.format(i), 
+            [rospy.Subscriber('/tb3_{}/scan'.format(rid), 
                               LaserScan, 
-                              self.laser_info_getter[i]) 
-            for i in range(self.robot_count)]
+                              self.laser_info_getter[id]) 
+            for id, rid in enumerate(self.robot_indexes)]
 
         # various simulation outcomes
         self.robot_finished = np.zeros((self.robot_count), dtype=bool)
@@ -157,7 +159,7 @@ class Enviroment():
         # wait for new scan message, so that laser values are updated
         # kinda cheeky but it works on my machine :D
         self.unpause()
-        rospy.wait_for_message('/tb3_0/scan', LaserScan)
+        rospy.wait_for_message('/tb3_{}/scan'.format(self.robot_indexes[0]), LaserScan)
         self.pause()
         return
     
@@ -269,6 +271,7 @@ class Enviroment():
 
         return states, rewards, robot_finished, self.robot_succeeded, False
 
+    '''
     def init_subscribers(self
         ) -> None:
         # basic settings
@@ -293,6 +296,7 @@ class Enviroment():
             for i in range(self.robot_count)]
         rospy.wait_for_message('/tb3_0/scan', LaserScan)
         return
+    '''
 
     def create_model_state(self, 
         name: str,
@@ -393,7 +397,8 @@ class Enviroment():
             tuple: x, y, theta ndarrays of robots
         """
         x, y, theta, correct = [], [], [], []
-        for index in robot_indexes:
+        for rid in self.robot_indexes:
+            index = robot_indexes[rid]
             pose = model_state.pose[index]
             twist = model_state.twist[index]
             x.append(pose.position.x)
@@ -468,7 +473,7 @@ class Enviroment():
         model_state = self.position_info_getter.get_msg()
         robot_indexes = self.get_robot_indexes_from_model_state(model_state)
         x, y, theta, _ = self.get_positions_from_model_state(model_state, 
-                                                          robot_indexes)
+                                                             robot_indexes)
         # get current distance to goal
         robot_target_distances = self.get_distance(x, self.x_targets, 
                                                    y, self.y_targets)

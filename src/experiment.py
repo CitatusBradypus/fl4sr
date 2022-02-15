@@ -15,7 +15,8 @@ from SharedNetworkDDPG import SharedNetworkDDPG
 from SharedExperienceDDPG import SharedExperienceDDPG
 from FederatedLearningDDPG import FederatedLearningDDPG
 from worlds import BASELINE_WORLD
-from worlds import TURTLEBOT_WORLD
+from worlds import TURTLEBOT_WORLD_5
+from worlds import TURTLEBOT_WORLD_6
 
 
 # GLOBAL VARIABLES
@@ -64,7 +65,7 @@ def experiment(
         open('experiment.pickle', 'wb').close()
         DDPG.init_enviroment()
     else:
-        DDPG = METHODS[args.method](EPISODE_COUNT, EPISODE_STEP_COUNT, TURTLEBOT_WORLD)
+        DDPG = METHODS[args.method](EPISODE_COUNT, EPISODE_STEP_COUNT, TURTLEBOT_WORLD_6)
     success, _, _ = DDPG.run()
     roscore_launch.shutdown()
     # RESULTS

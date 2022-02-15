@@ -151,6 +151,7 @@ class IndividualDDPG():
 
     def test(self
         ) -> None:
+        #TODO REWORK, COPY FROM LEARNING
         self.print_starting_info(training=False)
         for episode in range(self.episode_count):
             self.enviroment.reset()
