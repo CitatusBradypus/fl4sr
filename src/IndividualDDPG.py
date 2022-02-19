@@ -29,7 +29,7 @@ class IndividualDDPG():
         self.TIME_SAVE = 50
         # random actions
         self.EPSILON = 0.9
-        self.EPSILON_DECAY = 0.99999
+        self.EPSILON_DECAY = 0.99997
         # init experiment and error values
         self.episode_count = episode_count
         self.episode_step_count = episode_step_count
@@ -152,7 +152,7 @@ class IndividualDDPG():
     def test(self
         ) -> None:
         self.parameters_save()
-        self.print_starting_info()
+        self.print_starting_info(False)
         for episode in range(self.episode_error, self.episode_count):
             self.enviroment.reset()
             current_states = self.enviroment.get_starting_states()
@@ -161,7 +161,6 @@ class IndividualDDPG():
                 self.episode_step_error = 0
             for step in range(self.episode_step_error, self.episode_step_count):
                 actions = self.agents_actions(current_states)
-                actions = self.actions_add_random(actions, episode)
                 new_states, rewards, robots_finished, robots_succeeded_once, error = self.enviroment.step(actions)
                 if error:
                     self.episode_error = episode

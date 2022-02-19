@@ -30,10 +30,10 @@ METHODS = {'IDDPG': IndividualDDPG,
            'SNDDPG': SharedNetworkDDPG,
            'FLDDPG': FederatedLearningDDPG}
 
-EPISODE_COUNT = 2
+EPISODE_COUNT = 125
 EPISODE_STEP_COUNT = 1024
 
-LEARN_WORLD = TURTLEBOT_WORLD_6
+LEARN_WORLD = TURTLEBOT_WORLD_5
 
 EVAL_WORLD = EVAL_WORLD_0
 
@@ -70,7 +70,7 @@ def experiment_learn(
     if restart:
         with open('experiment.pickle', 'rb') as f:
             DDPG = pickle.load(f)
-        open('experiment.pickle', 'wb').close()
+        #open('experiment.pickle', 'wb').close()
         DDPG.init_enviroment()
     else:
         DDPG = METHODS[args.method](EPISODE_COUNT, EPISODE_STEP_COUNT, LEARN_WORLD)
@@ -126,10 +126,10 @@ def experiment_test(
     else:
         DDPG = IndividualDDPG(EPISODE_COUNT, EPISODE_STEP_COUNT, EVAL_WORLD)
         DDPG.agents_load(
-            [],
-            []
+            ['/home/users/jpikman/catkin_ws/src/fl4sr/src/data/SNDDPG-20220215-095140/weights/actor-final-0.pkl'],
+            ['/home/users/jpikman/catkin_ws/src/fl4sr/src/data/SNDDPG-20220215-095140/weights/critic-final-0.pkl']
         )
-    success, _, _ = DDPG.run()
+    success, _, _ = DDPG.test()
     roscore_launch.shutdown()
     # RESULTS
     if not success:
