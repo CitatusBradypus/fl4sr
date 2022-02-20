@@ -120,8 +120,8 @@ class IndividualDDPG():
                 self.episode_step_error = 0
             for step in range(self.episode_step_error, self.episode_step_count):
                 actions = self.agents_actions(current_states)
-                actions = self.actions_add_random(actions, episode)
-                new_states, rewards, robots_finished, robots_succeeded_once, error = self.enviroment.step(actions)
+                actions_real = self.actions_distribution_to_values(actions, episode)
+                new_states, rewards, robots_finished, robots_succeeded_once, error = self.enviroment.step(actions_real)
                 if error:
                     self.episode_error = episode
                     self.episode_step_error = step
@@ -229,6 +229,27 @@ class IndividualDDPG():
         #     self.EPSILON = 0.0
         self.EPSILON *= self.EPSILON_DECAY
         return new_actions
+
+
+    def actions_distribution_to_values(self, 
+        actions: np.ndarray, 
+        episode: int
+        ) -> np.ndarray:
+        # get current actions
+        angles_loc = actions[:, 0]
+        angles_scale = actions[:, 1]
+        linears_loc = actions[:, 2]
+        linears_scale = actions[:, 3]
+        # generate values from distribution
+        angles = np.random.normal(angles_loc, angles_scale)
+        linears = np.random.normal(linears_loc, linears_scale)
+        # clip
+        angles = np.clip(angles, -1, 1)
+        linears = np.clip(linears, 0, 1)
+        # format        
+        new_actions = np.array((angles, linears)).T
+        return new_actions
+
 
     def agents_train(self):
         for agent in self.agents:

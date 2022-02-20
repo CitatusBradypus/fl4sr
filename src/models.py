@@ -28,7 +28,7 @@ class Actor(nn.Module):
         self.input_dimension = input_dimension
         self.hidden_layers = hidden_layers
         self.hidden_dimension = len(hidden_layers)
-        self.output_dimension = 2
+        self.output_dimension = 4
         # create layers
         self.layers = nn.ModuleList()
         for i in range(self.hidden_dimension):
@@ -36,10 +36,9 @@ class Actor(nn.Module):
                 self.layers.append(nn.Linear(input_dimension, hidden_layers[i]))
                 self.layers.append(nn.Linear(hidden_layers[i], hidden_layers[i+1]))
             elif i == self.hidden_dimension - 1:
-                self.layers.append(nn.LayerNorm(hidden_layers[i]))
                 self.layers.append(nn.Linear(hidden_layers[i], 1))
                 nn.init.xavier_normal_(self.layers[-1].weight)
-                self.layers.append(nn.Linear(hidden_layers[i], 1))
+                self.layers.append(nn.Linear(hidden_layers[i], 3))
                 nn.init.xavier_normal_(self.layers[-1].weight)
             else:
                 self.layers.append(nn.Linear(hidden_layers[i], hidden_layers[i+1]))
@@ -63,10 +62,9 @@ class Actor(nn.Module):
         """
         # run computation
         for i in range(0, self.layers_len - 1, 1):
-            if i == self.layers_len - 3:
-                x = self.layers[i](x)
-                output0 = self.tanh(self.layers[i + 1](x))
-                output1 = self.sigmoid(self.layers[i + 2](x))
+            if i == self.layers_len - 2:
+                output0 = self.tanh(self.layers[i](x))
+                output1 = self.sigmoid(self.layers[i + 1](x))
             else:
                 x = self.ReLU(self.layers[i](x))
         return torch.cat((output0, output1), dim=1)
