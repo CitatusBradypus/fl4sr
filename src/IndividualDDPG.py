@@ -120,8 +120,8 @@ class IndividualDDPG():
                 self.episode_step_error = 0
             for step in range(self.episode_step_error, self.episode_step_count):
                 actions = self.agents_actions(current_states)
-                actions_real = self.actions_distribution_to_values(actions, episode)
-                new_states, rewards, robots_finished, robots_succeeded_once, error = self.enviroment.step(actions_real)
+                actions = self.actions_add_random(actions, episode)
+                new_states, rewards, robots_finished, robots_succeeded_once, error = self.enviroment.step(actions)
                 if error:
                     self.episode_error = episode
                     self.episode_step_error = step
