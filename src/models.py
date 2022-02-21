@@ -38,7 +38,7 @@ class Actor(nn.Module):
             elif i == self.hidden_dimension - 1:
                 self.layers.append(nn.Linear(hidden_layers[i], 1))
                 nn.init.xavier_normal_(self.layers[-1].weight)
-                self.layers.append(nn.Linear(hidden_layers[i], 3))
+                self.layers.append(nn.Linear(hidden_layers[i], 1))
                 nn.init.xavier_normal_(self.layers[-1].weight)
             else:
                 self.layers.append(nn.Linear(hidden_layers[i], hidden_layers[i+1]))
