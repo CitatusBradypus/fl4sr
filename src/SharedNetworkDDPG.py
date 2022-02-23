@@ -27,7 +27,7 @@ class SharedNetworkDDPG(IndividualDDPG):
         Returns:
             list: Buffers list.
         """
-        return [BasicBuffer(self.BUFFER_SIZE)]
+        return [self.BUFFER_TYPE(self.BUFFER_SIZE)]
 
     def init_agents(self
         ) -> list:

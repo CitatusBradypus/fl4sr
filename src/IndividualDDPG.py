@@ -9,7 +9,7 @@ import pickle
 from Enviroment import Enviroment
 from worlds import World
 from DDPG import DDPG
-from buffers import BasicBuffer, Transition
+from buffers import BasicBuffer, PrioritizedExperienceReplayBuffer, Transition
 
 
 class IndividualDDPG():
@@ -41,6 +41,7 @@ class IndividualDDPG():
         self.world = world
         self.init_enviroment()
         # init buffers and agents
+        self.BUFFER_TYPE = PrioritizedExperienceReplayBuffer
         self.BUFFER_SIZE = 50000
         self.buffers = self.init_buffers()
         self.agents = self.init_agents()
@@ -70,7 +71,7 @@ class IndividualDDPG():
         Returns:
             list: Buffers list.
         """
-        return [BasicBuffer(self.BUFFER_SIZE) 
+        return [self.BUFFER_TYPE(self.BUFFER_SIZE) 
                 for i in range(self.robot_count)]
 
     def init_agents(self

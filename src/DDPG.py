@@ -4,7 +4,7 @@ import os
 HOME = os.environ['HOME']
 sys.path.append(HOME + '/catkin_ws/src/fl4sr/src')
 from models import Actor, Critic
-from buffers import BasicBuffer, VectorTransitions, Transition
+from buffers import BasicBuffer, PrioritizedExperienceReplayBuffer, VectorTransitions, Transition
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -93,7 +93,12 @@ class DDPG:
         if self.replay_buffer._values_count < self.BATCH_SIZE:
             return
         # sample transitions
-        transitions = self.replay_buffer.sample(self.BATCH_SIZE)
+        if isinstance(self.replay_buffer, PrioritizedExperienceReplayBuffer):
+            transitions, weights = self.replay_buffer.sample(self.BATCH_SIZE)
+            weights = np.sqrt(weights).type(torch.cuda.FloatTensor)
+            weights_t = torch.from_numpy(weights)
+        else:
+            transitions = self.replay_buffer.sample(self.BATCH_SIZE)
         states, actions, rewards, states_next, finished = transitions
         # to tensors
         states_t = torch.from_numpy(states).type(torch.cuda.FloatTensor)
@@ -112,7 +117,14 @@ class DDPG:
         q_target_next_t = self.critic_target(states_actions_next_t)
         q_target_t = rewards_t + finished_t * self.GAMMA * q_target_next_t
         criterion = nn.MSELoss()
-        critic_loss = criterion(q_target_t, q_current_t)
+        if isinstance(self.replay_buffer, PrioritizedExperienceReplayBuffer):
+            q_difference_t = q_target_t - q_current_t
+            q_difference_weighted_t = torch.mul(q_difference_t, weights)
+            zeros_t = torch.zeros(q_difference_weighted_t.shape)
+            critic_loss = criterion(q_difference_weighted_t, zeros_t)
+            self.replay_buffer.update(q_difference_t.detach().numpy())
+        else:
+            critic_loss = criterion(q_target_t, q_current_t)
         critic_loss.backward()
         self.critic_optimizer.step()
         # actor update
@@ -178,7 +190,7 @@ def update_parameters(
 
 if __name__ == '__main__':
     # buffer preparation
-    buffer = BasicBuffer(256)
+    buffer = PrioritizedExperienceReplayBuffer(256)
     transitions = []
     for i in range(64):
         # s a r s_ f
