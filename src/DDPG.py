@@ -95,8 +95,8 @@ class DDPG:
         # sample transitions
         if isinstance(self.replay_buffer, PrioritizedExperienceReplayBuffer):
             transitions, weights = self.replay_buffer.sample(self.BATCH_SIZE)
-            weights = np.sqrt(weights).type(torch.cuda.FloatTensor)
-            weights_t = torch.from_numpy(weights)
+            weights = np.sqrt(weights)
+            weights_t = torch.from_numpy(weights).type(torch.cuda.FloatTensor)
         else:
             transitions = self.replay_buffer.sample(self.BATCH_SIZE)
         states, actions, rewards, states_next, finished = transitions
@@ -119,10 +119,10 @@ class DDPG:
         criterion = nn.MSELoss()
         if isinstance(self.replay_buffer, PrioritizedExperienceReplayBuffer):
             q_difference_t = q_target_t - q_current_t
-            q_difference_weighted_t = torch.mul(q_difference_t, weights)
-            zeros_t = torch.zeros(q_difference_weighted_t.shape)
+            q_difference_weighted_t = torch.mul(q_difference_t, weights_t)
+            zeros_t = torch.zeros(q_difference_weighted_t.shape).cuda()
             critic_loss = criterion(q_difference_weighted_t, zeros_t)
-            self.replay_buffer.update(q_difference_t.detach().numpy())
+            self.replay_buffer.update(q_difference_t.detach().cpu().numpy())
         else:
             critic_loss = criterion(q_target_t, q_current_t)
         critic_loss.backward()
