@@ -177,13 +177,11 @@ class PrioritizedExperienceReplayBuffer():
         d_alpha_array = 1 / ranked_array ** self._alpha
         d_alpha_sum = np.sum(d_alpha_array)
         probability_array = d_alpha_array / d_alpha_sum
-        print('p =', probability_array)
         # sample
         sample_indexes = np.random.choice(fresh_length + sorted_length, 
                                           size=batch_size, 
                                           replace=False, 
                                           p=probability_array)
-        print(sample_indexes)
         self._sample_fresh_indexes = sample_indexes[sample_indexes < fresh_length]
         self._sample_sorted_indexes = sample_indexes[sample_indexes >= fresh_length] - fresh_length
         sample_value_indexes = np.concatenate((self._fresh_array[self._sample_fresh_indexes, 1], 
@@ -200,11 +198,11 @@ class PrioritizedExperienceReplayBuffer():
         assert len(self._sample_fresh_indexes) + len(self._sample_sorted_indexes) == len(td_errors), 'ERROR: PER buffer wrong update dimensions!'
         # set td errors to fresh indexes
         fresh_pairs = self._fresh_array[self._sample_fresh_indexes, :]
-        fresh_pairs[:, 0] = td_errors[0:len(fresh_pairs)]
+        fresh_pairs[:, 0] = td_errors[0:len(fresh_pairs)][:, 0]
         # remove used indexes from fresh
         self._fresh_array = np.delete(self._fresh_array, self._sample_fresh_indexes, axis=0)
         # set td error to sorted indexes
-        self._sorted_array[self._sample_sorted_indexes, 0] = td_errors[len(fresh_pairs):]
+        self._sorted_array[self._sample_sorted_indexes, 0] = td_errors[len(fresh_pairs):][:, 0]
         # join sorted and used indexes
         self._sorted_array = np.concatenate((self._sorted_array, 
                                              fresh_pairs))
