@@ -184,7 +184,7 @@ def update_parameters(
             Defaults to 0.
     """
     for target_parameter, source_parameter in zip(target.parameters(), source.parameters()):
-        target_parameter.data.copy_(tau * target_parameter + (1 - tau) * source_parameter)
+        target_parameter.data.copy_((1 - tau) * target_parameter + tau * source_parameter)
     return
 
 
