@@ -23,7 +23,7 @@ class DDPG:
         """Creates actor, critic and target actor and critic, sets their weights 
             to same values.
 
-        Args:
+        Args
             replay_buffer (Buffer): Buffer holding transition samples.
             state_dimension (int): Dimension of state observations.
             action_dimension (int): Dimension of robot actions.
