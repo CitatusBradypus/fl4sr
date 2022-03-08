@@ -41,7 +41,7 @@ class IndividualDDPG():
         self.world = world
         self.init_enviroment()
         # init buffers and agents
-        self.BUFFER_TYPE = PrioritizedExperienceReplayBuffer
+        self.BUFFER_TYPE = BasicBuffer
         self.BUFFER_SIZE = 50000
         self.buffers = self.init_buffers()
         self.agents = self.init_agents()

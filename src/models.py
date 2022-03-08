@@ -74,19 +74,22 @@ class Critic(nn.Module):
     """Critic neural network.
     """
     def __init__(self,
-        input_dimension: int,
+        state_dimension: int,
+        action_dimension: int,
         hidden_layers: list
         ) -> None:
         """Creates actor neural network. Output dimension = 1, value is 
             unbounded.
 
         Args:
-            input_dimension (int): 
+            state_dimension (int): 
+            action_dimension (int): 
             hidden_layers (list): List with sizes of hidden layers.
         """
         super(Critic, self).__init__()
         # save parameters
-        self.input_dimension = input_dimension
+        self.state_dimension = state_dimension
+        self.action_dimension = action_dimension
         self.hidden_layers = hidden_layers
         self.hidden_dimension = len(hidden_layers)
         self.output_dimension = 1
@@ -94,8 +97,8 @@ class Critic(nn.Module):
         self.layers = nn.ModuleList()
         for i in range(self.hidden_dimension):
             if i == 0:
-                self.layers.append(nn.Linear(input_dimension, hidden_layers[i]))
-                self.layers.append(nn.Linear(hidden_layers[i], hidden_layers[i+1]))
+                self.layers.append(nn.Linear(state_dimension, hidden_layers[i]))
+                self.layers.append(nn.Linear(hidden_layers[i] + action_dimension, hidden_layers[i+1]))
             elif i == self.hidden_dimension - 1:
                 self.layers.append(nn.Linear(hidden_layers[i], 1))
             else:
@@ -106,19 +109,24 @@ class Critic(nn.Module):
         return
     
     def forward(self,
-        x: torch.tensor
+        y: tuple
         ) -> torch.tensor:
         """Run critic neural network with x as input.
 
         Args:
-            x (torch.tensor): Input tensor.
+            y (tuple): Tuple of state tensor and action tensor.
 
         Returns:
             torch.tensor: 1d output tensor.
         """
+        x, a = y
         # run computation
         for i in range(self.layers_len):
-            if i == self.layers_len - 1:
+            if i == 1:
+                x = torch.cat((x, a), 1)
+                x = self.ReLU(self.layers[i](x))
+                pass
+            elif i == self.layers_len - 1:
                 output = self.layers[i](x)
             else:
                 x = self.ReLU(self.layers[i](x))
@@ -126,16 +134,17 @@ class Critic(nn.Module):
 
 
 if __name__ == '__main__':
-    actor = Actor(3, [512, 512, 512])
-    actor.cuda()
-    input_t = torch.tensor([[-0.5, 0.1, -1]]).type(torch.cuda.FloatTensor)
-    print(input_t.size())
-    action = actor.forward(input_t)
-    print(action.size())
-    print(action)
+    #actor = Actor(3, [512, 512, 512])
+    #actor.cuda()
+    state_t = torch.tensor([[-0.5, 0.1, -1]]).type(torch.cuda.FloatTensor)
+    action_t = torch.tensor([[2, -2]]).type(torch.cuda.FloatTensor)
+    #print(input_t.size())
+    #action = actor.forward(input_t)
+    #print(action.size())
+    #print(action)
 
-    #critic = Critic(3, [512, 512, 512])
-    #critic.cuda()
-    #value = critic.forward(input_t)
-    #print(value.size())
-    #print(value)
+    critic = Critic(3, 2, [64, 64, 64])
+    critic.cuda()
+    value = critic.forward((state_t, action_t))
+    print(value.size())
+    print(value)

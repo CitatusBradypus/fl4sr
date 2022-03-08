@@ -42,7 +42,7 @@ class DDPG:
         self.BATCH_SIZE = 512
         self.GAMMA = 0.9
         # update parameters
-        self.TAU = 0.01
+        self.TAU = 0.5
         # actor networks init and cuda
         self.actor = Actor(self.state_dimension, 
                            self.ACTOR_HIDDEN_LAYERS)
@@ -54,7 +54,8 @@ class DDPG:
                                           self.LEARNING_RATE_ACTOR)
         update_parameters(self.actor_target, self.actor)
         # critic networks init and cuda
-        self.critic = Critic(self.state_dimension + self.action_dimension, 
+        self.critic = Critic(self.state_dimension,
+                             self.action_dimension, 
                              self.CRITIC_HIDDEN_LAYERS)
         self.critic.cuda()
         self.critic_target = Critic(self.state_dimension + self.action_dimension, 
@@ -107,10 +108,10 @@ class DDPG:
         states_next_t = torch.from_numpy(states_next).type(torch.cuda.FloatTensor)
         finished_t = torch.from_numpy(finished.reshape(-1, 1)).type(torch.cuda.FloatTensor)
         # prepare condensed inputs
-        states_actions_t = torch.cat((states_t, actions_t), dim=1)
+        states_actions_t = (states_t, actions_t)
         # get target actions from next state
         actions_target_t = self.actor_target(states_next_t)
-        states_actions_next_t = torch.cat((states_next_t, actions_target_t), dim=1)
+        states_actions_next_t = (states_next_t, actions_target_t)
         # critic update
         self.critic.zero_grad()
         q_current_t = self.critic(states_actions_t)
@@ -130,7 +131,7 @@ class DDPG:
         # actor update
         self.actor.zero_grad()
         actions_actor_t = self.actor(states_t)
-        states_actions_actor_t = torch.cat((states_t, actions_actor_t), dim=1)
+        states_actions_actor_t = (states_t, actions_actor_t)
         policy_loss = - self.critic(states_actions_actor_t)
         policy_loss = policy_loss.mean()
         policy_loss.backward()
@@ -190,7 +191,7 @@ def update_parameters(
 
 if __name__ == '__main__':
     # buffer preparation
-    buffer = PrioritizedExperienceReplayBuffer(256)
+    buffer = BasicBuffer(256)
     transitions = []
     for i in range(64):
         # s a r s_ f
