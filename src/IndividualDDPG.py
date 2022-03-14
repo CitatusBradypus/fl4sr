@@ -143,7 +143,7 @@ class IndividualDDPG():
             self.data_collect(episode, total_rewards, robots_succeeded_once)
             print('Average episode rewards: {}'.format(self.average_rewards[episode]))
             if episode % self.TIME_UPDATE == 0:
-                self.agents_update()
+                self.agents_update(self.average_rewards[episode])
             if episode % self.TIME_SAVE == 0:
                 self.agents_save(episode)
                 self.data_save(episode)
@@ -264,7 +264,7 @@ class IndividualDDPG():
             agent.update_targets() 
         return
 
-    def agents_update(self):
+    def agents_update(self, rewards):
         return
 
     def agents_save(self, 

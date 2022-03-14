@@ -14,6 +14,8 @@ from IndividualDDPG import IndividualDDPG
 from SharedNetworkDDPG import SharedNetworkDDPG
 from SharedExperienceDDPG import SharedExperienceDDPG
 from FederatedLearningDDPG import FederatedLearningDDPG
+from PositiveWeightingDDPG import PositiveWeightingDDPG
+from RealWeightingDDPG import RealWeightingDDPG
 from worlds import BASELINE_WORLD
 from worlds import TURTLEBOT_WORLD_5
 from worlds import TURTLEBOT_WORLD_6
@@ -28,7 +30,9 @@ DDPG = None
 METHODS = {'IDDPG': IndividualDDPG,
            'SEDDPG': SharedExperienceDDPG,
            'SNDDPG': SharedNetworkDDPG,
-           'FLDDPG': FederatedLearningDDPG}
+           'FLDDPG': FederatedLearningDDPG,
+           'PWDDPG': PositiveWeightingDDPG,
+           'RWDDPG': RealWeightingDDPG}
 
 EPISODE_COUNT = 125
 EPISODE_STEP_COUNT = 1024
