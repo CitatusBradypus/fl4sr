@@ -134,6 +134,8 @@ class IndividualDDPG():
                     self.agents_train()
                 if step % self.TIME_TARGET == 0:
                     self.agents_target()
+                #if step % self.TIME_UPDATE == 0:
+                #    self.agents_update()
                 if step % self.TIME_LOGGER == 0:
                     print('{}.{}'.format(episode, step))
                     print(actions)

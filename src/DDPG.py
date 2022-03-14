@@ -58,7 +58,8 @@ class DDPG:
                              self.action_dimension, 
                              self.CRITIC_HIDDEN_LAYERS)
         self.critic.cuda()
-        self.critic_target = Critic(self.state_dimension + self.action_dimension, 
+        self.critic_target = Critic(self.state_dimension,
+                                    self.action_dimension, 
                                     self.CRITIC_HIDDEN_LAYERS)
         self.critic_target.cuda()
         self.critic_optimizer = optim.Adam(self.critic.parameters(),

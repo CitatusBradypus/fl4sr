@@ -97,8 +97,8 @@ class Critic(nn.Module):
         self.layers = nn.ModuleList()
         for i in range(self.hidden_dimension):
             if i == 0:
-                self.layers.append(nn.Linear(state_dimension, hidden_layers[i]))
-                self.layers.append(nn.Linear(hidden_layers[i] + action_dimension, hidden_layers[i+1]))
+                self.layers.append(nn.Linear(state_dimension + action_dimension, hidden_layers[i]))
+                self.layers.append(nn.Linear(hidden_layers[i], hidden_layers[i+1]))
             elif i == self.hidden_dimension - 1:
                 self.layers.append(nn.Linear(hidden_layers[i], 1))
             else:
@@ -120,13 +120,10 @@ class Critic(nn.Module):
             torch.tensor: 1d output tensor.
         """
         x, a = y
+        x = torch.cat((x, a), 1)
         # run computation
         for i in range(self.layers_len):
-            if i == 1:
-                x = torch.cat((x, a), 1)
-                x = self.ReLU(self.layers[i](x))
-                pass
-            elif i == self.layers_len - 1:
+            if i == self.layers_len - 1:
                 output = self.layers[i](x)
             else:
                 x = self.ReLU(self.layers[i](x))

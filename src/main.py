@@ -11,17 +11,17 @@ sys.path.append(HOME + '/catkin_ws/src/fl4sr/src')
 
 
 COMMAND_LIST = [
-    ['rosrun', 'fl4sr', 'experiment.py', 'learn=True', 'IDDPG'],
-    ['rosrun', 'fl4sr', 'experiment.py', 'learn=True', 'SEDDPG'],
-    ['rosrun', 'fl4sr', 'experiment.py', 'learn=True', 'SNDDPG'],
+    #['rosrun', 'fl4sr', 'experiment.py', 'learn=True', 'IDDPG'],
+    #['rosrun', 'fl4sr', 'experiment.py', 'learn=True', 'SEDDPG'],
+    #['rosrun', 'fl4sr', 'experiment.py', 'learn=True', 'SNDDPG'],
     ['rosrun', 'fl4sr', 'experiment.py', 'learn=True', 'FLDDPG']
     #['rosrun', 'fl4sr', 'experiment.py', '', 'IDDPG']
 ]
 # Change commands
 SEEDS = [10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
-COMMAND_LIST = 4 * COMMAND_LIST
+COMMAND_LIST = 1 * COMMAND_LIST
 for i in range(len(COMMAND_LIST)):
-    COMMAND_LIST[i] = COMMAND_LIST[i] + ['--seed', '{}'.format(SEEDS[(i+24)//4])]
+    COMMAND_LIST[i] = COMMAND_LIST[i] + ['--seed', '{}'.format(SEEDS[(i)])]
     print(COMMAND_LIST[i])
 #exit(0)
 
