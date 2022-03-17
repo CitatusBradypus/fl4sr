@@ -34,7 +34,7 @@ class PositiveWeightingDDPG(IndividualDDPG):
         self.TAU = 0.5
         # weights params
         self.IS_EXPONENTIAL = True
-        self.BETA = 1
+        self.BETA = 1.5
         return
 
     def agents_update(self,
@@ -74,14 +74,14 @@ class PositiveWeightingDDPG(IndividualDDPG):
                 for j in range(self.agents_count):
                     actor_mean_weights[i] += weights[j] * self.agents[j].actor.layers[i].weight.data.clone()
                     actor_mean_bias[i] += weights[j] * self.agents[j].actor.layers[i].bias.data.clone()
-                actor_mean_weights[i] = actor_mean_weights[i] / self.agents_count
-                actor_mean_bias[i] = actor_mean_bias[i] / self.agents_count
+                actor_mean_weights[i] = actor_mean_weights[i]
+                actor_mean_bias[i] = actor_mean_bias[i]
             for i in range(self.critic_layers_count):
                 for j in range(self.agents_count):
                     critic_mean_weights[i] += weights[j] * self.agents[j].critic.layers[i].weight.data.clone()
                     critic_mean_bias[i] += weights[j] * self.agents[j].critic.layers[i].bias.data.clone()
-                critic_mean_weights[i] = critic_mean_weights[i] / self.agents_count
-                critic_mean_bias[i] = critic_mean_bias[i] / self.agents_count
+                critic_mean_weights[i] = critic_mean_weights[i]
+                critic_mean_bias[i] = critic_mean_bias[i]
         return Means(actor_mean_weights, actor_mean_bias, 
                      critic_mean_weights, critic_mean_bias)
 

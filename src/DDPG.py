@@ -40,7 +40,7 @@ class DDPG:
         self.LEARNING_RATE_ACTOR = 0.001
         self.LEARNING_RATE_CRITIC = 0.001
         self.BATCH_SIZE = 512
-        self.GAMMA = 0.9
+        self.GAMMA = 0.99
         # update parameters
         self.TAU = 0.5
         # actor networks init and cuda

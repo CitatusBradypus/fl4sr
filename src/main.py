@@ -14,7 +14,9 @@ COMMAND_LIST = [
     #['rosrun', 'fl4sr', 'experiment.py', 'learn=True', 'IDDPG'],
     #['rosrun', 'fl4sr', 'experiment.py', 'learn=True', 'SEDDPG'],
     #['rosrun', 'fl4sr', 'experiment.py', 'learn=True', 'SNDDPG'],
-    ['rosrun', 'fl4sr', 'experiment.py', 'learn=True', 'FLDDPG']
+    ['rosrun', 'fl4sr', 'experiment.py', 'learn=True', 'FLDDPG'],
+    #['rosrun', 'fl4sr', 'experiment.py', 'learn=True', 'PWDDPG'],
+    #['rosrun', 'fl4sr', 'experiment.py', 'learn=True', 'RWDDPG'],
     #['rosrun', 'fl4sr', 'experiment.py', '', 'IDDPG']
 ]
 # Change commands

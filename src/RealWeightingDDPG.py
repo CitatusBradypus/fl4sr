@@ -24,7 +24,7 @@ class RealWeightingDDPG(IndividualDDPG):
         episode_step_count: int, 
         world: World
         ) -> None:
-        self.NAME = 'PWDDPG'
+        self.NAME = 'RWDDPG'
         super().__init__(episode_count, episode_step_count, world)
         # get model coutns
         self.agents_count = len(self.agents)
@@ -33,8 +33,7 @@ class RealWeightingDDPG(IndividualDDPG):
         # averaging params
         self.TAU = 0.5
         # weights params
-        self.IS_STANDARD = True
-        self.BETA = 1
+        self.BETA = 1.5
         return
 
     def agents_update(self,
@@ -59,26 +58,23 @@ class RealWeightingDDPG(IndividualDDPG):
             critic_mean_weights[i] = torch.zeros(size=self.agents[0].critic.layers[i].weight.shape).cuda()
             critic_mean_bias[i] = torch.zeros(size=self.agents[0].critic.layers[i].bias.shape).cuda()
         # compute weights
-        if self.IS_STANDARD:
-            normalisation = np.std(rewards)
-            rewards_t = torch.from_numpy(rewards_t).type(torch.cuda.FloatTensor)
-        else:
-            normalisation = np.sum(np.abs(rewards))
-            rewards_t = torch.from_numpy(rewards_t).type(torch.cuda.FloatTensor)
+        weights_sum = np.sum(np.abs(rewards) ** self.BETA)
+        weights = (np.sign(rewards) * (np.abs(rewards) ** self.BETA)) / weights_sum
+        weights_t = torch.from_numpy(weights).type(torch.cuda.FloatTensor)
         # compute means
         with torch.no_grad():
             for i in range(self.actor_layers_count):
                 for j in range(self.agents_count):
-                    actor_mean_weights[i] += rewards_t[j] * self.agents[j].actor.layers[i].weight.data.clone()
-                    actor_mean_bias[i] += rewards_t[j] * self.agents[j].actor.layers[i].bias.data.clone()
-                actor_mean_weights[i] = actor_mean_weights[i] / (normalisation * self.BETA * self.agents_count)
-                actor_mean_bias[i] = actor_mean_bias[i] / (normalisation * self.BETA * self.agents_count)
+                    actor_mean_weights[i] += weights_t[j] * self.agents[j].actor.layers[i].weight.data.clone()
+                    actor_mean_bias[i] += weights_t[j] * self.agents[j].actor.layers[i].bias.data.clone()
+                actor_mean_weights[i] = actor_mean_weights[i]
+                actor_mean_bias[i] = actor_mean_bias[i]
             for i in range(self.critic_layers_count):
                 for j in range(self.agents_count):
-                    critic_mean_weights[i] += rewards_t[j] * self.agents[j].critic.layers[i].weight.data.clone()
-                    critic_mean_bias[i] += rewards_t[j] * self.agents[j].critic.layers[i].bias.data.clone()
-                critic_mean_weights[i] = critic_mean_weights[i] / (normalisation * self.BETA * self.agents_count)
-                critic_mean_bias[i] = critic_mean_bias[i] / (normalisation * self.BETA * self.agents_count)
+                    critic_mean_weights[i] += weights_t[j] * self.agents[j].critic.layers[i].weight.data.clone()
+                    critic_mean_bias[i] += weights_t[j] * self.agents[j].critic.layers[i].bias.data.clone()
+                critic_mean_weights[i] = critic_mean_weights[i]
+                critic_mean_bias[i] = critic_mean_bias[i]
         return Means(actor_mean_weights, actor_mean_bias, 
                      critic_mean_weights, critic_mean_bias)
 
