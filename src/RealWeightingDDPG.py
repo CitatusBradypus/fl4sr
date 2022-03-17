@@ -57,24 +57,47 @@ class RealWeightingDDPG(IndividualDDPG):
         for i in range(self.critic_layers_count):
             critic_mean_weights[i] = torch.zeros(size=self.agents[0].critic.layers[i].weight.shape).cuda()
             critic_mean_bias[i] = torch.zeros(size=self.agents[0].critic.layers[i].bias.shape).cuda()
+        # init standart deviations
+        actor_std_weights = [None] * self.actor_layers_count
+        actor_std_bias = [None] * self.actor_layers_count
+        critic_std_weights = [None] * self.critic_layers_count
+        critic_std_bias = [None] * self.critic_layers_count
+        # compute standart deviations
+        with torch.no_grad():
+            for i in range(self.actor_layers_count):
+                actor_std_weights_l = []
+                actor_std_bias_l = []
+                for j in range(self.agents_count):
+                    actor_std_weights_l.append(self.agents[j].actor.layers[i].weight.data.clone())
+                    actor_std_bias_l.append(self.agents[j].actor.layers[i].bias.data.clone())
+                actor_std_weights[i] = torch.std(torch.stack(actor_std_weights_l), dim=0)
+                actor_std_bias[i] = torch.std(torch.stack(actor_std_bias_l), dim=0)
+            for i in range(self.critic_layers_count):
+                critic_std_weights_l = []
+                critic_std_bias_l = []
+                for j in range(self.agents_count):
+                    critic_std_weights_l.append(self.agents[j].critic.layers[i].weight.data.clone())
+                    critic_std_bias_l.append(self.agents[j].critic.layers[i].bias.data.clone())
+                critic_std_weights[i] = torch.std(torch.stack(critic_std_weights_l), dim=0)
+                critic_std_bias[i] = torch.std(torch.stack(critic_std_bias_l), dim=0)
         # compute weights
-        weights_sum = np.sum(np.abs(rewards) ** self.BETA)
-        weights = (np.sign(rewards) * (np.abs(rewards) ** self.BETA)) / weights_sum
-        weights_t = torch.from_numpy(weights).type(torch.cuda.FloatTensor)
+        # weights_sum = np.sum(np.abs(rewards) ** self.BETA)
+        # weights = (np.sign(rewards) * (np.abs(rewards) ** self.BETA)) / weights_sum
+        # weights_t = torch.from_numpy(weights).type(torch.cuda.FloatTensor)
         # compute means
         with torch.no_grad():
             for i in range(self.actor_layers_count):
                 for j in range(self.agents_count):
-                    actor_mean_weights[i] += weights_t[j] * self.agents[j].actor.layers[i].weight.data.clone()
-                    actor_mean_bias[i] += weights_t[j] * self.agents[j].actor.layers[i].bias.data.clone()
-                actor_mean_weights[i] = actor_mean_weights[i]
-                actor_mean_bias[i] = actor_mean_bias[i]
+                    actor_mean_weights[i] += self.agents[j].actor.layers[i].weight.data.clone()
+                    actor_mean_bias[i] += self.agents[j].actor.layers[i].bias.data.clone()
+                actor_mean_weights[i] = actor_mean_weights[i] / (self.agents_count * actor_std_weights[i])
+                actor_mean_bias[i] = actor_mean_bias[i] / (self.agents_count * actor_std_bias[i])
             for i in range(self.critic_layers_count):
                 for j in range(self.agents_count):
-                    critic_mean_weights[i] += weights_t[j] * self.agents[j].critic.layers[i].weight.data.clone()
-                    critic_mean_bias[i] += weights_t[j] * self.agents[j].critic.layers[i].bias.data.clone()
-                critic_mean_weights[i] = critic_mean_weights[i]
-                critic_mean_bias[i] = critic_mean_bias[i]
+                    critic_mean_weights[i] += self.agents[j].critic.layers[i].weight.data.clone()
+                    critic_mean_bias[i] += self.agents[j].critic.layers[i].bias.data.clone()
+                critic_mean_weights[i] = critic_mean_weights[i] / (self.agents_count * critic_std_weights[i])
+                critic_mean_bias[i] = critic_mean_bias[i] / (self.agents_count * critic_std_bias[i])
         return Means(actor_mean_weights, actor_mean_bias, 
                      critic_mean_weights, critic_mean_bias)
 
