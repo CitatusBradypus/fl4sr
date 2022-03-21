@@ -46,6 +46,7 @@ class RealWeightingDDPG(IndividualDDPG):
         ) -> None:
         means = self.get_means(rewards)
         self.agents_update_models(means)
+        self.agents_previous = copy.deepcopy(self.agents)
         return
 
     def get_means(self,
