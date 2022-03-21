@@ -99,14 +99,14 @@ class RealWeightingDDPG(IndividualDDPG):
         with torch.no_grad():
             for i in range(self.actor_layers_count):
                 for j in range(self.agents_count):
-                    actor_mean_weights[i] += rewards[j] * self.agents[j].actor.layers[i].weight.data.clone()
-                    actor_mean_bias[i] += rewards[j] * self.agents[j].actor.layers[i].bias.data.clone()
+                    actor_mean_weights[i] += rewards[j] * self.agents_differences[j].actor.layers[i].weight.data.clone()
+                    actor_mean_bias[i] += rewards[j] * self.agents_differences[j].actor.layers[i].bias.data.clone()
                 actor_mean_weights[i] = self.MUL * actor_mean_weights[i] / (self.agents_count * actor_std_weights[i] + self.ADD)
                 actor_mean_bias[i] = self.MUL * actor_mean_bias[i] / (self.agents_count * actor_std_bias[i] + self.ADD)
             for i in range(self.critic_layers_count):
                 for j in range(self.agents_count):
-                    critic_mean_weights[i] += rewards[j] * self.agents[j].critic.layers[i].weight.data.clone()
-                    critic_mean_bias[i] += rewards[j] * self.agents[j].critic.layers[i].bias.data.clone()
+                    critic_mean_weights[i] += rewards[j] * self.agents_differences[j].critic.layers[i].weight.data.clone()
+                    critic_mean_bias[i] += rewards[j] * self.agents_differences[j].critic.layers[i].bias.data.clone()
                 critic_mean_weights[i] = self.MUL * critic_mean_weights[i] / (self.agents_count * critic_std_weights[i] + self.ADD)
                 critic_mean_bias[i] = self.MUL * critic_mean_bias[i] / (self.agents_count * critic_std_bias[i] + self.ADD)
         return Means(actor_mean_weights, actor_mean_bias, 
