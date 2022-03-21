@@ -12,6 +12,7 @@ from worlds import World
 from DDPG import DDPG
 from buffers import BasicBuffer, Transition
 import numpy as np
+import copy
 
 
 Means = namedtuple('Averages', 'aw, ab, cw, cb')
@@ -36,6 +37,8 @@ class RealWeightingDDPG(IndividualDDPG):
         self.BETA = 1
         self.MUL = 1
         self.ADD = 0.1
+        self.agents_previous = copy.deepcopy(self.agents)
+        self.agents_differences = copy.deepcopy(self.agents)
         return
 
     def agents_update(self,
@@ -64,22 +67,27 @@ class RealWeightingDDPG(IndividualDDPG):
         actor_std_bias = [None] * self.actor_layers_count
         critic_std_weights = [None] * self.critic_layers_count
         critic_std_bias = [None] * self.critic_layers_count
-        # compute standart deviations
+        # compute differences and save them
+        # compute standart deviations of differences
         with torch.no_grad():
             for i in range(self.actor_layers_count):
                 actor_std_weights_l = []
                 actor_std_bias_l = []
                 for j in range(self.agents_count):
-                    actor_std_weights_l.append(self.agents[j].actor.layers[i].weight.data.clone())
-                    actor_std_bias_l.append(self.agents[j].actor.layers[i].bias.data.clone())
+                    self.agents_differences[j].actor.layers[i].weight.data = self.agents_previous[j].actor.layers[i].weight.data - self.agents[j].actor.layers[i].weight.data
+                    self.agents_differences[j].actor.layers[i].bias.data = self.agents_previous[j].actor.layers[i].bias.data - self.agents[j].actor.layers[i].bias.data
+                    actor_std_weights_l.append(self.agents_differences[j].actor.layers[i].weight.data)
+                    actor_std_bias_l.append(self.agents_differences[j].actor.layers[i].bias.data)
                 actor_std_weights[i] = torch.std(torch.stack(actor_std_weights_l), dim=0)
                 actor_std_bias[i] = torch.std(torch.stack(actor_std_bias_l), dim=0)
             for i in range(self.critic_layers_count):
                 critic_std_weights_l = []
                 critic_std_bias_l = []
                 for j in range(self.agents_count):
-                    critic_std_weights_l.append(self.agents[j].critic.layers[i].weight.data.clone())
-                    critic_std_bias_l.append(self.agents[j].critic.layers[i].bias.data.clone())
+                    self.agents_differences[j].critic.layers[i].weight.data = self.agents_previous[j].critic.layers[i].weight.data - self.agents[j].critic.layers[i].weight.data
+                    self.agents_differences[j].critic.layers[i].bias.data = self.agents_previous[j].critic.layers[i].bias.data - self.agents[j].critic.layers[i].bias.data
+                    critic_std_weights_l.append(self.agents_differences[j].critic.layers[i].weight.data)
+                    critic_std_bias_l.append(self.agents_differences[j].critic.layers[i].bias.data)
                 critic_std_weights[i] = torch.std(torch.stack(critic_std_weights_l), dim=0)
                 critic_std_bias[i] = torch.std(torch.stack(critic_std_bias_l), dim=0)
         # compute weights
@@ -108,13 +116,13 @@ class RealWeightingDDPG(IndividualDDPG):
         ) -> None:
         for i in range(self.agents_count):
             for j in range(self.actor_layers_count):
-                self.agents[i].actor.layers[j].weight.data = \
-                    self.TAU * self.agents[i].actor.layers[j].weight.data + (1 - self.TAU) * means.aw[j].clone()
-                self.agents[i].actor.layers[j].bias.data = \
-                    self.TAU * self.agents[i].actor.layers[j].bias.data + (1 - self.TAU) * means.ab[j].clone()
+                self.agents[i].actor.layers[j].weight.data = self.agents_previous[i].actor.layers[j].weight.data \
+                    + self.TAU * self.agents_differences[i].actor.layers[j].weight.data + (1 - self.TAU) * means.aw[j]
+                self.agents[i].actor.layers[j].bias.data = self.agents_previous[i].actor.layers[j].bias.data \
+                    + self.TAU * self.agents_differences[i].actor.layers[j].bias.data + (1 - self.TAU) * means.ab[j].clone()
             for j in range(self.critic_layers_count):
-                self.agents[i].critic.layers[j].weight.data = \
-                    self.TAU * self.agents[i].critic.layers[j].weight.data + (1 - self.TAU) * means.cw[j].clone()
-                self.agents[i].critic.layers[j].bias.data = \
-                    self.TAU * self.agents[i].critic.layers[j].bias.data + (1 - self.TAU) * means.cb[j].clone()
+                self.agents[i].critic.layers[j].weight.data = self.agents_previous[i].critic.layers[j].weight.data \
+                    + self.TAU * self.agents_differences[i].critic.layers[j].weight.data + (1 - self.TAU) * means.cw[j].clone()
+                self.agents[i].critic.layers[j].bias.data = self.agents_previous[i].critic.layers[j].bias.data \
+                    + self.TAU * self.agents_differences[i].critic.layers[j].bias.data + (1 - self.TAU) * means.cb[j].clone()
         return
