@@ -24,7 +24,8 @@ class IndividualDDPG():
         # global like variables
         self.TIME_TRAIN = 5
         self.TIME_TARGET = 5
-        self.TIME_UPDATE = 1
+        self.EPISODE_UPDATE = True
+        self.TIME_UPDATE = 2
         self.TIME_LOGGER = 16
         self.TIME_SAVE = 50
         # random actions
@@ -42,7 +43,8 @@ class IndividualDDPG():
         self.init_enviroment()
         # init buffers and agents
         self.BUFFER_TYPE = BasicBuffer
-        self.BUFFER_SIZE = 50000
+        if not hasattr(self, 'BUFFER_SIZE'):
+            self.BUFFER_SIZE = 30000
         self.buffers = self.init_buffers()
         self.agents = self.init_agents()
         # loggers
@@ -113,6 +115,7 @@ class IndividualDDPG():
         ) -> tuple:
         self.parameters_save()
         self.print_starting_info()
+        print(self.TIME_UPDATE)
         for episode in range(self.episode_error, self.episode_count):
             self.enviroment.reset()
             current_states = self.enviroment.get_starting_states()
@@ -134,15 +137,17 @@ class IndividualDDPG():
                     self.agents_train()
                 if step % self.TIME_TARGET == 0:
                     self.agents_target()
-                #if step % self.TIME_UPDATE == 0:
-                #    self.agents_update()
+                if (not self.EPISODE_UPDATE) and step % self.TIME_UPDATE == 0:
+                    print('UPDATE')
+                    self.agents_update(self.average_rewards[episode])
                 if step % self.TIME_LOGGER == 0:
                     print('{}.{}'.format(episode, step))
                     print(actions)
                 current_states = new_states
             self.data_collect(episode, total_rewards, robots_succeeded_once)
             print('Average episode rewards: {}'.format(self.average_rewards[episode]))
-            if episode % self.TIME_UPDATE == 0:
+            if self.EPISODE_UPDATE and episode % self.TIME_UPDATE == 0:
+                print('UPDATE')
                 self.agents_update(self.average_rewards[episode])
             if episode % self.TIME_SAVE == 0:
                 self.agents_save(episode)
@@ -340,7 +345,7 @@ class IndividualDDPG():
         parameters['LEARNING_RATE_CRITIC'] = self.agents[0].LEARNING_RATE_CRITIC
         parameters['BATCH_SIZE'] = self.agents[0].BATCH_SIZE
         parameters['GAMMA'] = self.agents[0].GAMMA
-        parameters['TAU_TARGET'] = self.agents[0].TAU
+        parameters['TAU_TARGET'] = self.agents[0].RHO
         # enviromental params
         parameters['COLLISION_RANGE'] = self.enviroment.COLLISION_RANGE
         parameters['GOAL_RANGE'] = self.enviroment.GOAL_RANGE
@@ -362,6 +367,7 @@ class IndividualDDPG():
         print('Running robots = {}'.format(self.world.robot_alives))
         print('Training = {}'.format(training))
         print('Buffers = {}'.format(len(self.buffers)))
+        print('Buffer size = {}'.format(self.BUFFER_SIZE))
         print('Agents = {}'.format(len(self.agents)))
         print('----------------')
         return

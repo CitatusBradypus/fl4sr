@@ -42,7 +42,7 @@ class DDPG:
         self.BATCH_SIZE = 512
         self.GAMMA = 0.9
         # update parameters
-        self.TAU = 0.5
+        self.RHO = 1.0
         # actor networks init and cuda
         self.actor = Actor(self.state_dimension, 
                            self.ACTOR_HIDDEN_LAYERS)
@@ -149,8 +149,8 @@ class DDPG:
             update_parameters(self.actor_target, self.actor)
             update_parameters(self.critic_target, self.critic)
         else:
-            update_parameters(self.actor_target, self.actor, self.TAU)
-            update_parameters(self.critic_target, self.critic, self.TAU)
+            update_parameters(self.actor_target, self.actor, self.RHO)
+            update_parameters(self.critic_target, self.critic, self.RHO)
         return
 
     def weights_save(self, 
@@ -174,7 +174,7 @@ class DDPG:
 def update_parameters(
     target: nn.Module,
     source: nn.Module,
-    tau: float=0
+    rho: float=1
     ) -> None:
     """Soft updates parameters in target nn.Model using source parameters. 
         If tau is not specified update defaults to hard.
@@ -186,7 +186,7 @@ def update_parameters(
             Defaults to 0.
     """
     for target_parameter, source_parameter in zip(target.parameters(), source.parameters()):
-        target_parameter.data.copy_((1 - tau) * target_parameter + tau * source_parameter)
+        target_parameter.data.copy_((1 - rho) * target_parameter + rho * source_parameter)
     return
 
 

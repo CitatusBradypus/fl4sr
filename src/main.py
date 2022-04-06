@@ -9,21 +9,25 @@ import numpy as np
 HOME = os.environ['HOME']
 sys.path.append(HOME + '/catkin_ws/src/fl4sr/src')
 
-
+# COMMANDS
 COMMAND_LIST = [
     #['rosrun', 'fl4sr', 'experiment.py', 'learn=True', 'IDDPG'],
     #['rosrun', 'fl4sr', 'experiment.py', 'learn=True', 'SEDDPG'],
     #['rosrun', 'fl4sr', 'experiment.py', 'learn=True', 'SNDDPG'],
-    #['rosrun', 'fl4sr', 'experiment.py', 'learn=True', 'FLDDPG'],
+    ['rosrun', 'fl4sr', 'experiment.py', 'learn=True', 'FLDDPG', '--updateStep=True', '--updatePeriod=32', '--seed', '17'],
     #['rosrun', 'fl4sr', 'experiment.py', 'learn=True', 'PWDDPG'],
-    ['rosrun', 'fl4sr', 'experiment.py', 'learn=True', 'RWDDPG'],
+    #['rosrun', 'fl4sr', 'experiment.py', 'learn=True', 'RWDDPG'],
     #['rosrun', 'fl4sr', 'experiment.py', '', 'IDDPG']
 ]
-# Change commands
-SEEDS = [10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
-COMMAND_LIST = 1 * COMMAND_LIST
-for i in range(len(COMMAND_LIST)):
-    COMMAND_LIST[i] = COMMAND_LIST[i] + ['--seed', '{}'.format(SEEDS[(i+0)//1])]
+
+#SEEDS = [10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+#COMMAND_LIST = 1 * COMMAND_LIST
+#for i in range(len(COMMAND_LIST)):
+#    COMMAND_LIST[i] = COMMAND_LIST[i] + ['--seed', '{}'.format(SEEDS[(i//1)+0])]
+#COMMAND_LIST = [['rosrun', 'fl4sr', 'experiment.py', 'learn=True', 'FLDDPG', '--seed', '12']] + COMMAND_LIST
+
+# PRINT 
+for i in range(len(COMMAND_LIST)):    
     print(COMMAND_LIST[i])
 #exit(0)
 

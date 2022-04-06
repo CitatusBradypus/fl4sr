@@ -17,6 +17,7 @@ class SharedNetworkDDPG(IndividualDDPG):
         world: World
         ) -> None:
         self.NAME = 'SNDDPG'
+        self.BUFFER_SIZE = 70000
         super().__init__(episode_count, episode_step_count, world)
         return
 

@@ -17,6 +17,7 @@ class SharedExperienceDDPG(IndividualDDPG):
         world: World
         ) -> None:
         self.NAME = 'SEDDPG'
+        self.BUFFER_SIZE = 50000
         super().__init__(episode_count, episode_step_count, world)
         return
 

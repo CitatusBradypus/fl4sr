@@ -25,15 +25,16 @@ class FederatedLearningDDPG(IndividualDDPG):
         world: World
         ) -> None:
         self.NAME = 'FLDDPG'
+        self.BUFFER_SIZE = 10000
         super().__init__(episode_count, episode_step_count, world)
         # get model coutns
         self.agents_count = len(self.agents)
         self.actor_layers_count = len(self.agents[0].actor.layers)
         self.critic_layers_count = len(self.agents[0].critic.layers)
         # averaging params
-        self.TAU = 0.5
-        self.IS_TAU_DYNAMICAL = False
-        self.TAU_STEP = 0.5 / 125
+        self.TAU = 1.0
+        #self.IS_TAU_DYNAMICAL = False
+        #self.TAU_STEP = 0.5 / 125
         return
 
     def agents_update(self,
@@ -79,14 +80,14 @@ class FederatedLearningDDPG(IndividualDDPG):
         for i in range(self.agents_count):
             for j in range(self.actor_layers_count):
                 self.agents[i].actor.layers[j].weight.data = \
-                    self.TAU * self.agents[i].actor.layers[j].weight.data + (1 - self.TAU) * means.aw[j].clone()
+                    (1 - self.TAU) * self.agents[i].actor.layers[j].weight.data + self.TAU * means.aw[j].clone()
                 self.agents[i].actor.layers[j].bias.data = \
-                    self.TAU * self.agents[i].actor.layers[j].bias.data + (1 - self.TAU) * means.ab[j].clone()
+                    (1 - self.TAU) * self.agents[i].actor.layers[j].bias.data + self.TAU * means.ab[j].clone()
             for j in range(self.critic_layers_count):
                 self.agents[i].critic.layers[j].weight.data = \
-                    self.TAU * self.agents[i].critic.layers[j].weight.data + (1 - self.TAU) * means.cw[j].clone()
+                    (1 - self.TAU) * self.agents[i].critic.layers[j].weight.data + self.TAU * means.cw[j].clone()
                 self.agents[i].critic.layers[j].bias.data = \
-                    self.TAU * self.agents[i].critic.layers[j].bias.data + (1 - self.TAU) * means.cb[j].clone()
-        if self.IS_TAU_DYNAMICAL:
-            self.TAU += self.TAU_STEP
+                    (1 - self.TAU) * self.agents[i].critic.layers[j].bias.data + self.TAU * means.cb[j].clone()
+        #if self.IS_TAU_DYNAMICAL:
+        #    self.TAU += self.TAU_STEP
         return

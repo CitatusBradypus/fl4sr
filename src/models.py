@@ -28,7 +28,7 @@ class Actor(nn.Module):
         self.input_dimension = input_dimension
         self.hidden_layers = hidden_layers
         self.hidden_dimension = len(hidden_layers)
-        self.output_dimension = 4
+        self.output_dimension = 2
         # create layers
         self.layers = nn.ModuleList()
         for i in range(self.hidden_dimension):

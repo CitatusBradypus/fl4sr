@@ -34,7 +34,7 @@ METHODS = {'IDDPG': IndividualDDPG,
            'PWDDPG': PositiveWeightingDDPG,
            'RWDDPG': RealWeightingDDPG}
 
-EPISODE_COUNT = 5
+EPISODE_COUNT = 125
 EPISODE_STEP_COUNT = 1024
 
 LEARN_WORLD = TURTLEBOT_WORLD_5
@@ -44,7 +44,9 @@ EVAL_WORLD = EVAL_WORLD_0
 def experiment_learn(
         method: str,
         restart: bool,
-        seed: int
+        seed: int,
+        update_step: int,
+        update_period: int,
     ) -> bool:
     """Run experiment with specified values.
 
@@ -78,6 +80,16 @@ def experiment_learn(
         DDPG.init_enviroment()
     else:
         DDPG = METHODS[args.method](EPISODE_COUNT, EPISODE_STEP_COUNT, LEARN_WORLD)
+        if method == 'FLDDPG':
+            #print('METHOD')
+            if update_step is None and update_period is not None:
+                DDPG.EPISODE_UPDATE = True
+                DDPG.TIME_UPDATE = update_period
+            else:
+                #print(update_period)
+                DDPG.EPISODE_UPDATE = False
+                DDPG.TIME_UPDATE = update_period
+                #print(DDPG.EPISODE_TIME)
     success, _, _ = DDPG.run()
     roscore_launch.shutdown()
     # RESULTS
@@ -169,11 +181,19 @@ if __name__ == '__main__':
         '--seed',
         type=int,
         help='Seed for random generators.')
+    parser.add_argument(
+        '--updateStep',
+        type=bool,
+        help='If the federated learning is done in episodes.')
+    parser.add_argument(
+        '--updatePeriod',
+        type=int,
+        help='Period of federated update.')
     args = parser.parse_args()
     # ARGUMENTS
     assert args.method in METHODS, 'ERROR: Unknown method name.'
     # EXPERIMENT
     if args.learn:
-        experiment_learn(args.method, args.restart, args.seed)
+        experiment_learn(args.method, args.restart, args.seed, args.updateStep, args.updatePeriod)
     else:
         experiment_test(args.method, args.restart, args.seed)
