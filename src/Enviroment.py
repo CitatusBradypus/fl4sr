@@ -56,8 +56,11 @@ class Enviroment():
         self.robot_alives = world.robot_alives
         self.robot_indexes = world.robot_indexes
 
-        self.x_starts = world.x_starts
-        self.y_starts = world.y_starts
+        self.x_starts_all = world.x_starts
+        self.y_starts_all = world.y_starts
+
+        self.x_starts = [x[0] for x in world.x_starts]
+        self.y_starts = [y[0] for y in world.y_starts]
 
         self.targets = world.target_positions
         self.x_targets = np.array(self.targets).T[0]
@@ -131,7 +134,27 @@ class Enviroment():
         rospy.wait_for_service('/gazebo/set_model_state')
         # set model states or reset world
         if robot_id == -1:
-            self.reset_world()
+            try:
+                state_setter = rospy.ServiceProxy('/gazebo/set_model_state', SetModelState)
+                for id, rid in enumerate(self.robot_indexes):
+                    # pick new starting position and direction and set them
+                    start_index = np.random.randint(len(self.x_starts_all[id]))
+                    self.x_starts[id] = self.x_starts_all[id][start_index]
+                    self.y_starts[id] = self.y_starts_all[id][start_index]
+                    direction = -0.2 + (np.random.rand() * np.pi / 2) - (np.pi / 4)
+                    # generate new message
+                    self.reset_tb3_messages[id] = \
+                        self.create_model_state('tb3_{}'.format(rid), 
+                                             self.x_starts[id], 
+                                             self.y_starts[id],
+                                             direction)
+                    # reset enviroment position
+                    state_setter(self.reset_tb3_messages[id])
+                    state_setter(self.reset_target_messages[id])
+                    self.robot_finished[id] = False
+            except rospy.ServiceException as e:
+                print('Failed state setter!', e)
+            #self.reset_world()
         else:
             try:
                 state_setter = rospy.ServiceProxy('/gazebo/set_model_state', SetModelState)
@@ -180,7 +203,8 @@ class Enviroment():
                    rewards (np.ndarray), 
                    robot_finished (list), 
                    robot_succeeded (list),
-                   degub (various)
+                   error (bool)
+                   data (dict)
         """
         assert len(actions) == self.robot_count, 'Wrong actions dimension!'
         # generate twists, also get separate values of actions
@@ -210,7 +234,7 @@ class Enviroment():
         # check for damaged robots
         if np.any(np.isnan(correct)):
             print('ERROR: Enviroment: nan robot twist detected!')
-            return None, None, None, None, True
+            return None, None, None, None, True, None
 
         theta = theta % (2 * np.pi)
         # get current distance to goal
@@ -268,8 +292,13 @@ class Enviroment():
         for i in range(self.robot_count):
             if self.robot_finished[i]:
                 self.reset(i)
+        # additional data to send
+        data = {}
+        data['x'] = x
+        data['y'] = y
+        data['theta'] = theta
 
-        return states, rewards, robot_finished, self.robot_succeeded, False
+        return states, rewards, robot_finished, self.robot_succeeded, False, data
 
     '''
     def init_subscribers(self

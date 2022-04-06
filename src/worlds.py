@@ -68,18 +68,18 @@ TURTLEBOT_WORLD_5 = World(
                   True, 
                   True, 
                   True],
-    x_starts=[10.0, 
-             1.7, 
-             -6.0, 
-             12.0, 
-             0.0, 
-             -12.0],
-    y_starts=[9.0, 
-             9.0, 
-             9.0, 
-             -9.0, 
-             -9.0, 
-             -9.0],
+    x_starts=[[10.0], 
+             [1.7], 
+             [-6.0], 
+             [12.0], 
+             [0.0], 
+             [-12.0]],
+    y_starts=[[9.0], 
+             [9.0], 
+             [9.0], 
+             [-9.0], 
+             [-9.0], 
+             [-9.0]],
     target_positions=[[6.0, 5.0], 
                       [-2.0, 5.0], 
                       [-10.0, 5.0], 
@@ -90,28 +90,28 @@ TURTLEBOT_WORLD_5 = World(
 
 EVAL_WORLD_0 = World(
     robot_alives=[True],
-    x_starts=[0.0],
-    y_starts=[0.0],
+    x_starts=[[0.0]],
+    y_starts=[[0.0]],
     target_positions=[[5.0, 5.0]]
 )
 
 EVAL_WORLD_1 = World(
     robot_alives=[True],
-    x_starts=[0.0],
-    y_starts=[0.0],
+    x_starts=[[0.0]],
+    y_starts=[[0.0]],
     target_positions=[[-5.0, 5.0]]
 )
 
 EVAL_WORLD_2 = World(
     robot_alives=[True],
-    x_starts=[0.0],
-    y_starts=[0.0],
+    x_starts=[[0.0]],
+    y_starts=[[0.0]],
     target_positions=[[5.0, -5.0]]
 )
 
 EVAL_WORLD_3 = World(
     robot_alives=[True],
-    x_starts=[0.0],
-    y_starts=[0.0],
+    x_starts=[[0.0]],
+    y_starts=[[0.0]],
     target_positions=[[-5.0, -5.0]]
 )
