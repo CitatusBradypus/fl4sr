@@ -33,7 +33,6 @@ class PositiveWeightingDDPG(IndividualDDPG):
         # averaging params
         self.TAU = 0.5
         # weights params
-        self.IS_EXPONENTIAL = True
         self.BETA = 1.5
         return
 
@@ -59,15 +58,9 @@ class PositiveWeightingDDPG(IndividualDDPG):
             critic_mean_weights[i] = torch.zeros(size=self.agents[0].critic.layers[i].weight.shape).cuda()
             critic_mean_bias[i] = torch.zeros(size=self.agents[0].critic.layers[i].bias.shape).cuda()
         # compute weights
-        if self.IS_EXPONENTIAL:
-            weight_sum = np.sum(np.e ** (self.BETA * rewards))
-            weights = (np.e ** (self.BETA * rewards)) / weight_sum
-            weights = torch.from_numpy(weights).type(torch.cuda.FloatTensor)
-        else:
-            rewards_min = np.min(rewards)
-            rewards_sum = np.sum(rewards)
-            weights = (self.BETA - rewards_min + rewards) / (self.agents_count * self.BETA - self.agents_count * rewards_min + rewards_sum)
-            weights = torch.from_numpy(weights).type(torch.cuda.FloatTensor)
+        weight_sum = np.sum(np.e ** (self.BETA * rewards))
+        weights = (np.e ** (self.BETA * rewards)) / weight_sum
+        weights = torch.from_numpy(weights).type(torch.cuda.FloatTensor)
         # compute means
         with torch.no_grad():
             for i in range(self.actor_layers_count):

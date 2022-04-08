@@ -33,8 +33,6 @@ class FederatedLearningDDPG(IndividualDDPG):
         self.critic_layers_count = len(self.agents[0].critic.layers)
         # averaging params
         self.TAU = 0.5
-        #self.IS_TAU_DYNAMICAL = False
-        #self.TAU_STEP = 0.5 / 125
         return
 
     def agents_update(self,
@@ -88,6 +86,4 @@ class FederatedLearningDDPG(IndividualDDPG):
                     (1 - self.TAU) * self.agents[i].critic.layers[j].weight.data + self.TAU * means.cw[j].clone()
                 self.agents[i].critic.layers[j].bias.data = \
                     (1 - self.TAU) * self.agents[i].critic.layers[j].bias.data + self.TAU * means.cb[j].clone()
-        #if self.IS_TAU_DYNAMICAL:
-        #    self.TAU += self.TAU_STEP
         return
