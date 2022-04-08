@@ -32,7 +32,7 @@ class FederatedLearningDDPG(IndividualDDPG):
         self.actor_layers_count = len(self.agents[0].actor.layers)
         self.critic_layers_count = len(self.agents[0].critic.layers)
         # averaging params
-        self.TAU = 1.0
+        self.TAU = 0.5
         #self.IS_TAU_DYNAMICAL = False
         #self.TAU_STEP = 0.5 / 125
         return

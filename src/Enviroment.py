@@ -141,7 +141,7 @@ class Enviroment():
                     start_index = np.random.randint(len(self.x_starts_all[id]))
                     self.x_starts[id] = self.x_starts_all[id][start_index]
                     self.y_starts[id] = self.y_starts_all[id][start_index]
-                    direction = -0.2 + (np.random.rand() * np.pi / 2) - (np.pi / 4)
+                    direction = -0.2 # + (np.random.rand() * np.pi / 2) - (np.pi / 4)
                     # generate new message
                     self.reset_tb3_messages[id] = \
                         self.create_model_state('tb3_{}'.format(rid), 
