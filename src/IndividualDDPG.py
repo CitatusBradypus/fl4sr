@@ -115,16 +115,18 @@ class IndividualDDPG():
         ) -> tuple:
         self.parameters_save()
         self.print_starting_info()
-        print(self.TIME_UPDATE)
+        total_rewards = np.zeros(self.robot_count)
         for episode in range(self.episode_error, self.episode_count):
             self.enviroment.reset()
             current_states = self.enviroment.get_starting_states()
-            total_rewards = np.zeros(self.robot_count)
+            data_total_rewards = np.zeros(self.robot_count)
             if self.episode_error != episode:
                 self.episode_step_error = 0
             for step in range(self.episode_step_error, self.episode_step_count):
+                # get actions
                 actions = self.agents_actions(current_states)
                 actions = self.actions_add_random(actions, episode)
+                # perform step
                 new_states, rewards, robots_finished, robots_succeeded_once, error, _ = self.enviroment.step(actions)
                 if error:
                     self.episode_error = episode
@@ -132,23 +134,35 @@ class IndividualDDPG():
                     print('ERROR: DDPG: Death robot detected during {}.{}'.format(episode, step))
                     return False, episode, step
                 total_rewards += rewards
+                data_total_rewards += rewards
                 self.buffers_save_transitions(current_states, actions, rewards, new_states, robots_finished)
+                # train
                 if step % self.TIME_TRAIN == 0:
                     self.agents_train()
+                # update target
                 if step % self.TIME_TARGET == 0:
                     self.agents_target()
+                # step federated update
                 if (not self.EPISODE_UPDATE) and step % self.TIME_UPDATE == 0:
                     print('UPDATE')
-                    self.agents_update(self.average_rewards[episode])
+                    mean_rewards = total_rewards / self.TIME_UPDATE
+                    self.agents_update(mean_rewards)
+                    total_rewards = np.zeros(self.robot_count)
+                # print info
                 if step % self.TIME_LOGGER == 0:
                     print('{}.{}'.format(episode, step))
                     print(actions)
                 current_states = new_states
-            self.data_collect(episode, total_rewards, robots_succeeded_once)
+            self.data_collect(episode, data_total_rewards, robots_succeeded_once)
+            # print info
             print('Average episode rewards: {}'.format(self.average_rewards[episode]))
+            # episode federated update
             if self.EPISODE_UPDATE and episode % self.TIME_UPDATE == 0:
                 print('UPDATE')
-                self.agents_update(self.average_rewards[episode])
+                mean_rewards = total_rewards / (self.TIME_UPDATE * self.episode_step_count)
+                self.agents_update(mean_rewards)
+                total_rewards = np.zeros(self.robot_count)
+            # save data
             if episode % self.TIME_SAVE == 0:
                 self.agents_save(episode)
                 self.data_save(episode)

@@ -76,20 +76,15 @@ def experiment_learn(
     if restart:
         with open('experiment.pickle', 'rb') as f:
             DDPG = pickle.load(f)
-        #open('experiment.pickle', 'wb').close()
         DDPG.init_enviroment()
     else:
         DDPG = METHODS[args.method](EPISODE_COUNT, EPISODE_STEP_COUNT, LEARN_WORLD)
-        if method == 'FLDDPG':
-            #print('METHOD')
-            if update_step is None and update_period is not None:
-                DDPG.EPISODE_UPDATE = True
-                DDPG.TIME_UPDATE = update_period
-            else:
-                #print(update_period)
-                DDPG.EPISODE_UPDATE = False
-                DDPG.TIME_UPDATE = update_period
-                #print(DDPG.EPISODE_TIME)
+        if update_step is None and update_period is not None:
+            DDPG.EPISODE_UPDATE = True
+            DDPG.TIME_UPDATE = update_period
+        else:
+            DDPG.EPISODE_UPDATE = False
+            DDPG.TIME_UPDATE = update_period
     success, _, _ = DDPG.run()
     roscore_launch.shutdown()
     # RESULTS
