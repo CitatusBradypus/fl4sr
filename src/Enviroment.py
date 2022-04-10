@@ -150,7 +150,7 @@ class Enviroment():
                                              direction)
                     # reset enviroment position
                     state_setter(self.reset_tb3_messages[id])
-                    state_setter(self.reset_target_messages[id])
+                    #state_setter(self.reset_target_messages[id])
                     self.robot_finished[id] = False
             except rospy.ServiceException as e:
                 print('Failed state setter!', e)
@@ -159,7 +159,7 @@ class Enviroment():
             try:
                 state_setter = rospy.ServiceProxy('/gazebo/set_model_state', SetModelState)
                 state_setter(self.reset_tb3_messages[robot_id])
-                state_setter(self.reset_target_messages[robot_id])
+                #state_setter(self.reset_target_messages[robot_id])
                 self.robot_finished[robot_id] = False
             except rospy.ServiceException as e:
                 print('Failed state setter!', e)

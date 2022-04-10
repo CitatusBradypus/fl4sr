@@ -14,16 +14,27 @@ COMMAND_LIST = [
     #['rosrun', 'fl4sr', 'experiment.py', 'learn=True', 'IDDPG'],
     #['rosrun', 'fl4sr', 'experiment.py', 'learn=True', 'SEDDPG'],
     #['rosrun', 'fl4sr', 'experiment.py', 'learn=True', 'SNDDPG'],
-    ['rosrun', 'fl4sr', 'experiment.py', 'learn=True', 'FLDDPG', '--updatePeriod=2'],
-    ['rosrun', 'fl4sr', 'experiment.py', 'learn=True', 'PWDDPG', '--updatePeriod=2'],
+    #['rosrun', 'fl4sr', 'experiment.py', 'learn=True', 'FLDDPG', '--updatePeriod=2'],
+    #['rosrun', 'fl4sr', 'experiment.py', 'learn=True', 'PWDDPG', '--updatePeriod=2'],
     #['rosrun', 'fl4sr', 'experiment.py', 'learn=True', 'RWDDPG', '--updatePeriod=2'],
-    #['rosrun', 'fl4sr', 'experiment.py', '', 'IDDPG']
+    #['rosrun', 'fl4sr', 'experiment.py', '','IDDPG', '--worldNumber=0', 
+    #    '--pathActor=/home/users/jpikman/catkin_ws/src/fl4sr/src/data/FLDDPG-s-p-2-1/weights/actor-final-4.pkl', 
+    #    '--pathCritic=/home/users/jpikman/catkin_ws/src/fl4sr/src/data/FLDDPG-s-p-2-1/weights/critic-final-4.pkl'],
+    ['rosrun', 'fl4sr', 'experiment.py', '','IDDPG', '--worldNumber=1', 
+        '--pathActor=/home/users/jpikman/catkin_ws/src/fl4sr/src/data/FLDDPG-s-p-2-1/weights/actor-final-4.pkl', 
+        '--pathCritic=/home/users/jpikman/catkin_ws/src/fl4sr/src/data/FLDDPG-s-p-2-1/weights/critic-final-4.pkl'],
+    ['rosrun', 'fl4sr', 'experiment.py', '','IDDPG', '--worldNumber=2', 
+        '--pathActor=/home/users/jpikman/catkin_ws/src/fl4sr/src/data/FLDDPG-s-p-2-1/weights/actor-final-4.pkl', 
+        '--pathCritic=/home/users/jpikman/catkin_ws/src/fl4sr/src/data/FLDDPG-s-p-2-1/weights/critic-final-4.pkl'],
+    ['rosrun', 'fl4sr', 'experiment.py', '','IDDPG', '--worldNumber=3', 
+        '--pathActor=/home/users/jpikman/catkin_ws/src/fl4sr/src/data/FLDDPG-s-p-2-1/weights/actor-final-4.pkl', 
+        '--pathCritic=/home/users/jpikman/catkin_ws/src/fl4sr/src/data/FLDDPG-s-p-2-1/weights/critic-final-4.pkl'],
 ]
 
 SEEDS = [10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
 COMMAND_LIST = 1 * COMMAND_LIST
 for i in range(len(COMMAND_LIST)):
-    COMMAND_LIST[i] = COMMAND_LIST[i] + ['--seed', '{}'.format(SEEDS[(i//2)+4])]
+    COMMAND_LIST[i] = COMMAND_LIST[i] + ['--seed', '{}'.format(SEEDS[(i//4)+0])]
 #COMMAND_LIST = [['rosrun', 'fl4sr', 'experiment.py', 'learn=True', 'FLDDPG', '--seed', '12']] + COMMAND_LIST
 
 # PRINT 
