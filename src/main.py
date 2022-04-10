@@ -15,15 +15,15 @@ COMMAND_LIST = [
     #['rosrun', 'fl4sr', 'experiment.py', 'learn=True', 'SEDDPG'],
     #['rosrun', 'fl4sr', 'experiment.py', 'learn=True', 'SNDDPG'],
     ['rosrun', 'fl4sr', 'experiment.py', 'learn=True', 'FLDDPG', '--updatePeriod=2'],
-    #['rosrun', 'fl4sr', 'experiment.py', 'learn=True', 'PWDDPG'],
-    #['rosrun', 'fl4sr', 'experiment.py', 'learn=True', 'RWDDPG'],
+    ['rosrun', 'fl4sr', 'experiment.py', 'learn=True', 'PWDDPG', '--updatePeriod=2'],
+    #['rosrun', 'fl4sr', 'experiment.py', 'learn=True', 'RWDDPG', '--updatePeriod=2'],
     #['rosrun', 'fl4sr', 'experiment.py', '', 'IDDPG']
 ]
 
-SEEDS = [12]#[10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+SEEDS = [10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
 COMMAND_LIST = 1 * COMMAND_LIST
 for i in range(len(COMMAND_LIST)):
-    COMMAND_LIST[i] = COMMAND_LIST[i] + ['--seed', '{}'.format(SEEDS[(i//1)+0])]
+    COMMAND_LIST[i] = COMMAND_LIST[i] + ['--seed', '{}'.format(SEEDS[(i//2)+4])]
 #COMMAND_LIST = [['rosrun', 'fl4sr', 'experiment.py', 'learn=True', 'FLDDPG', '--seed', '12']] + COMMAND_LIST
 
 # PRINT 

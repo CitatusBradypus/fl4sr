@@ -33,7 +33,7 @@ class PositiveWeightingDDPG(IndividualDDPG):
         # averaging params
         self.TAU = 0.5
         # weights params
-        self.BETA = 1.5
+        self.BETA = 0.5
         return
 
     def agents_update(self,

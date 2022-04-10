@@ -34,7 +34,7 @@ class RealWeightingDDPG(IndividualDDPG):
         # averaging params
         self.TAU = 0.5
         # weights params
-        self.BETA = 1
+        self.BETA = 0.5
         return
 
     def agents_update(self,
@@ -84,13 +84,13 @@ class RealWeightingDDPG(IndividualDDPG):
         ) -> None:
         for i in range(self.agents_count):
             for j in range(self.actor_layers_count):
-                self.agents[i].actor.layers[j].weight.data = self.agents_previous[i].actor.layers[j].weight.data \
-                    + self.TAU * self.agents_differences[i].actor.layers[j].weight.data + (1 - self.TAU) * means.aw[j]
-                self.agents[i].actor.layers[j].bias.data = self.agents_previous[i].actor.layers[j].bias.data \
-                    + self.TAU * self.agents_differences[i].actor.layers[j].bias.data + (1 - self.TAU) * means.ab[j].clone()
+                self.agents[i].actor.layers[j].weight.data = \
+                    self.TAU * self.agents[i].actor.layers[j].weight.data + (1 - self.TAU) * means.aw[j].clone()
+                self.agents[i].actor.layers[j].bias.data = \
+                    self.TAU * self.agents[i].actor.layers[j].bias.data + (1 - self.TAU) * means.ab[j].clone()
             for j in range(self.critic_layers_count):
-                self.agents[i].critic.layers[j].weight.data = self.agents_previous[i].critic.layers[j].weight.data \
-                    + self.TAU * self.agents_differences[i].critic.layers[j].weight.data + (1 - self.TAU) * means.cw[j].clone()
-                self.agents[i].critic.layers[j].bias.data = self.agents_previous[i].critic.layers[j].bias.data \
-                    + self.TAU * self.agents_differences[i].critic.layers[j].bias.data + (1 - self.TAU) * means.cb[j].clone()
+                self.agents[i].critic.layers[j].weight.data = \
+                    self.TAU * self.agents[i].critic.layers[j].weight.data + (1 - self.TAU) * means.cw[j].clone()
+                self.agents[i].critic.layers[j].bias.data = \
+                    self.TAU * self.agents[i].critic.layers[j].bias.data + (1 - self.TAU) * means.cb[j].clone()
         return
