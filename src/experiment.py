@@ -1,4 +1,5 @@
 #! /usr/bin/env python3.8
+import string
 import sys
 import os
 import time
@@ -78,7 +79,7 @@ def experiment_learn(
             DDPG = pickle.load(f)
         DDPG.init_enviroment()
     else:
-        DDPG = METHODS[args.method](EPISODE_COUNT, EPISODE_STEP_COUNT, LEARN_WORLD)
+        DDPG = METHODS[method](EPISODE_COUNT, EPISODE_STEP_COUNT, LEARN_WORLD)
         if update_step is None and update_period is not None:
             DDPG.EPISODE_UPDATE = True
             DDPG.TIME_UPDATE = update_period
@@ -100,9 +101,11 @@ def experiment_learn(
 
 
 def experiment_test(
-        method: str,
         restart: bool,
-        seed: int
+        seed: int,
+        world_number: int,
+        path_actor: str,
+        path_critic: str
     ) -> bool:
     """Run experiment with specified values.
 
@@ -127,18 +130,26 @@ def experiment_test(
     if seed is not None:
         random.seed(seed)
         np.random.seed(seed)
+    # set world
+    if world_number == 0:
+        EVAL_WORLD = EVAL_WORLD_0
+    elif world_number == 1:
+        EVAL_WORLD = EVAL_WORLD_1
+    elif world_number == 2:
+        EVAL_WORLD = EVAL_WORLD_2
+    elif world_number == 3:
+        EVAL_WORLD = EVAL_WORLD_3
     # RUN
     print('Simulation: Ready to run!')
     if restart:
         with open('experiment.pickle', 'rb') as f:
             DDPG = pickle.load(f)
-        open('experiment.pickle', 'wb').close()
         DDPG.init_enviroment()
     else:
         DDPG = IndividualDDPG(EPISODE_COUNT, EPISODE_STEP_COUNT, EVAL_WORLD)
         DDPG.agents_load(
-            ['/home/users/jpikman/catkin_ws/src/fl4sr/src/data/SNDDPG-20220215-095140/weights/actor-final-0.pkl'],
-            ['/home/users/jpikman/catkin_ws/src/fl4sr/src/data/SNDDPG-20220215-095140/weights/critic-final-0.pkl']
+            [path_actor],
+            [path_critic]
         )
     success, _, _ = DDPG.test()
     roscore_launch.shutdown()
@@ -164,6 +175,18 @@ if __name__ == '__main__':
         'learn',
         type=bool,
         help='If method is supposted to learn or test')
+    parser.add_argument(
+        '--worldNumber', 
+        type=int,
+        help='Specifier for world type.')
+    parser.add_argument(
+        '--pathActor', 
+        type=str,
+        help='Path to actor.')
+    parser.add_argument(
+        '--pathCritic', 
+        type=str,
+        help='Path to critic.')
     parser.add_argument(
         'method', 
         type=str,
@@ -191,4 +214,4 @@ if __name__ == '__main__':
     if args.learn:
         experiment_learn(args.method, args.restart, args.seed, args.updateStep, args.updatePeriod)
     else:
-        experiment_test(args.method, args.restart, args.seed)
+        experiment_test(args.restart, args.seed, args.worldNumber, args.pathActor, args.pathCritic)

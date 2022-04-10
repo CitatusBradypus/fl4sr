@@ -104,18 +104,17 @@ class IndividualDDPG():
         ) -> None:
         self.average_rewards = np.zeros((self.episode_count, self.robot_count))
         self.robots_succeeded_once = np.zeros((self.episode_count, self.robot_count), dtype=bool)        
-        return
-
-    def terminate_enviroment(self
-        ) -> None:
-        self.enviroment = None
+        self.robots_finished = np.zeros((self.episode_count, self.robot_count), dtype=bool)
+        self.data = []      
         return
 
     def run(self
         ) -> tuple:
+        # before start
         self.parameters_save()
         self.print_starting_info()
         total_rewards = np.zeros(self.robot_count)
+        # epizode loop
         for episode in range(self.episode_error, self.episode_count):
             self.enviroment.reset()
             current_states = self.enviroment.get_starting_states()
@@ -173,15 +172,16 @@ class IndividualDDPG():
 
     def test(self
         ) -> None:
+        # before start
         self.parameters_save()
         self.print_starting_info(False)
+        # epizode loop
         for episode in range(self.episode_error, self.episode_count):
             self.enviroment.reset()
             current_states = self.enviroment.get_starting_states()
-            total_rewards = np.zeros(self.robot_count)
             if self.episode_error != episode:
                 self.episode_step_error = 0
-            for step in range(self.episode_step_error, self.episode_step_count):
+            for step in range(0, self.episode_step_count):
                 actions = self.agents_actions(current_states)
                 new_states, rewards, robots_finished, robots_succeeded_once, error, data = self.enviroment.step(actions)
                 if error:
@@ -189,19 +189,16 @@ class IndividualDDPG():
                     self.episode_step_error = step
                     print('ERROR: DDPG: Death robot detected during {}.{}'.format(episode, step))
                     return False, episode, step
-                total_rewards += rewards
                 if step % self.TIME_LOGGER == 0:
                     print('{}.{}'.format(episode, step))
                     print(actions)
                 current_states = new_states
-            self.data_collect(episode, total_rewards, robots_succeeded_once)
-            print('Average episode rewards: {}'.format(self.average_rewards[episode]))
+            self.data_collect_test(episode, robots_finished, robots_succeeded_once, data)
+            print('Robots succeded once: {}'.format(robots_succeeded_once))
             if episode % self.TIME_SAVE == 0:
-                self.agents_save(episode)
-                self.data_save(episode)
+                self.data_save_test(episode)
         self.enviroment.reset()
-        self.agents_save()
-        self.data_save()
+        self.data_save_test()
         return True, None, None
 
     def agents_actions(self,
@@ -241,35 +238,10 @@ class IndividualDDPG():
         linears = (1 - use_randoms) * linears_a + use_randoms * linears_r
         angles = np.clip(angles, -1, 1)
         linears = np.clip(linears, 0, 1)
-        #linears = linears * 0.9 + 0.1
-        # SET ALL LINEAR SPEEDS TO 0.5 
-        #linears = 0.125 * np.ones(self.robot_count)
-        
+        # combine new actions
         new_actions = np.array((angles, linears)).T
-        # update epsilon
-        # if episode == 900:
-        #     self.EPSILON = 0.0
+        # update random rate
         self.EPSILON *= self.EPSILON_DECAY
-        return new_actions
-
-
-    def actions_distribution_to_values(self, 
-        actions: np.ndarray, 
-        episode: int
-        ) -> np.ndarray:
-        # get current actions
-        angles_loc = actions[:, 0]
-        angles_scale = actions[:, 1]
-        linears_loc = actions[:, 2]
-        linears_scale = actions[:, 3]
-        # generate values from distribution
-        angles = np.random.normal(angles_loc, angles_scale)
-        linears = np.random.normal(linears_loc, linears_scale)
-        # clip
-        angles = np.clip(angles, -1, 1)
-        linears = np.clip(linears, 0, 1)
-        # format        
-        new_actions = np.array((angles, linears)).T
         return new_actions
 
 
@@ -323,6 +295,17 @@ class IndividualDDPG():
                 print('ERROR: Suspicious behaviour discovered, repeated fitness for robots {}'.format(same_indexes))
         return
 
+    def data_collect_test(self, 
+        episode,
+        robots_finished, 
+        robots_succeeded_once,
+        data
+        ) -> None:
+        self.robots_finished[episode] = robots_finished
+        self.robots_succeeded_once[episode] = robots_succeeded_once
+        self.data.append(data)
+        return
+
     def data_save(self, 
         episode:int=None
         ) -> None:
@@ -330,6 +313,17 @@ class IndividualDDPG():
                 self.average_rewards)
         np.save(self.path_log + '/succeded'.format(),
                 self.robots_succeeded_once)
+        return
+
+    def data_save_test(self, 
+        episode:int=None
+        ) -> None:
+        np.save(self.path_log + '/finished'.format(), 
+                self.robots_finished)
+        np.save(self.path_log + '/succeded'.format(),
+                self.robots_succeeded_once)
+        with open(self.path_log + '/data.pkl', 'wb') as f:
+            pickle.dump(self.data, f)
         return
 
     def parameters_save(self
