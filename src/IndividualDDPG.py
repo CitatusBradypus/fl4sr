@@ -108,6 +108,13 @@ class IndividualDDPG():
         self.data = []      
         return
 
+    def init_data_test(self
+        ) -> None:
+        self.robots_succeeded_once = np.zeros((self.episode_step_count, self.robot_count), dtype=bool)        
+        self.robots_finished = np.zeros((self.episode_step_count, self.robot_count), dtype=bool)
+        self.data = []      
+        return
+
     def run(self
         ) -> tuple:
         # before start
@@ -173,6 +180,7 @@ class IndividualDDPG():
     def test(self
         ) -> None:
         # before start
+        self.init_data_test()
         self.parameters_save()
         self.print_starting_info(False)
         # epizode loop
@@ -193,12 +201,10 @@ class IndividualDDPG():
                     print('{}.{}'.format(episode, step))
                     print(actions)
                 current_states = new_states
-            self.data_collect_test(episode, robots_finished, robots_succeeded_once, data)
+                self.data_collect_test(episode, robots_finished, robots_succeeded_once, data)
             print('Robots succeded once: {}'.format(robots_succeeded_once))
-            if episode % self.TIME_SAVE == 0:
-                self.data_save_test(episode)
+            self.data_save_test(episode)
         self.enviroment.reset()
-        self.data_save_test()
         return True, None, None
 
     def agents_actions(self,
@@ -318,11 +324,11 @@ class IndividualDDPG():
     def data_save_test(self, 
         episode:int=None
         ) -> None:
-        np.save(self.path_log + '/finished'.format(), 
+        np.save(self.path_log + '/finished-{}'.format(episode), 
                 self.robots_finished)
-        np.save(self.path_log + '/succeded'.format(),
+        np.save(self.path_log + '/succeded-{}'.format(episode),
                 self.robots_succeeded_once)
-        with open(self.path_log + '/data.pkl', 'wb') as f:
+        with open(self.path_log + '/data-{}.pkl'.format(episode), 'wb') as f:
             pickle.dump(self.data, f)
         return
 
