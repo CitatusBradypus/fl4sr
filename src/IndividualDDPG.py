@@ -186,6 +186,7 @@ class IndividualDDPG():
         # epizode loop
         for episode in range(self.episode_error, self.episode_count):
             self.enviroment.reset()
+            self.init_data_test()
             current_states = self.enviroment.get_starting_states()
             if self.episode_error != episode:
                 self.episode_step_error = 0
@@ -201,7 +202,7 @@ class IndividualDDPG():
                     print('{}.{}'.format(episode, step))
                     print(actions)
                 current_states = new_states
-                self.data_collect_test(episode, robots_finished, robots_succeeded_once, data)
+                self.data_collect_test(step, robots_finished, robots_succeeded_once, data)
             print('Robots succeded once: {}'.format(robots_succeeded_once))
             self.data_save_test(episode)
         self.enviroment.reset()
@@ -302,13 +303,13 @@ class IndividualDDPG():
         return
 
     def data_collect_test(self, 
-        episode,
+        step,
         robots_finished, 
         robots_succeeded_once,
         data
         ) -> None:
-        self.robots_finished[episode] = robots_finished
-        self.robots_succeeded_once[episode] = robots_succeeded_once
+        self.robots_finished[step] = robots_finished
+        self.robots_succeeded_once[step] = robots_succeeded_once
         self.data.append(data)
         return
 
