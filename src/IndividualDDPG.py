@@ -115,6 +115,10 @@ class IndividualDDPG():
         self.data = []      
         return
 
+    def terminate_enviroment(self):
+        self.enviroment = None
+        return
+
     def run(self
         ) -> tuple:
         # before start
@@ -124,7 +128,7 @@ class IndividualDDPG():
         # epizode loop
         for episode in range(self.episode_error, self.episode_count):
             self.enviroment.reset()
-            current_states = self.enviroment.get_starting_states()
+            current_states = self.enviroment.get_current_states()
             data_total_rewards = np.zeros(self.robot_count)
             if self.episode_error != episode:
                 self.episode_step_error = 0
@@ -187,7 +191,7 @@ class IndividualDDPG():
         for episode in range(self.episode_error, self.episode_count):
             self.enviroment.reset()
             self.init_data_test()
-            current_states = self.enviroment.get_starting_states()
+            current_states = self.enviroment.get_current_states()
             if self.episode_error != episode:
                 self.episode_step_error = 0
             for step in range(0, self.episode_step_count):

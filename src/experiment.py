@@ -35,7 +35,7 @@ METHODS = {'IDDPG': IndividualDDPG,
            'PWDDPG': PositiveWeightingDDPG,
            'RWDDPG': RealWeightingDDPG}
 
-EPISODE_COUNT = 1
+EPISODE_COUNT = 125
 EPISODE_STEP_COUNT = 1024
 
 LEARN_WORLD = TURTLEBOT_WORLD_5
