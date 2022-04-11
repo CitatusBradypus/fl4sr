@@ -19,11 +19,12 @@ COMMAND_LIST = [
     #['rosrun', 'fl4sr', 'experiment.py', 'learn=True', 'RWDDPG', '--updatePeriod=2'],
 ]
 
-#COMMAND_LIST = [
-#    ['rosrun', 'fl4sr', 'experiment.py', '','IDDPG', '--worldNumber=0',
-#        '--pathActor=/home/users/jpikman/catkin_ws/src/fl4sr/src/data/FLDDPG-s-p-2-2/weights/actor-final-4.pkl',
-#        '--pathCritic=/home/users/jpikman/catkin_ws/src/fl4sr/src/data/FLDDPG-s-p-2-2/weights/critic-final-4.pkl'],
-#]
+#COMMAND_LIST = []
+#for nid in range(1, 8+1):
+#    for wid in range(0, 4):
+#        COMMAND_LIST += [['rosrun', 'fl4sr', 'experiment.py', '','IDDPG', '--worldNumber={}'.format(wid), 
+#        '--pathActor=/home/users/jpikman/catkin_ws/src/fl4sr/src/data/FLDDPG-s-p-2-{}/weights/actor-final-4.pkl'.format(nid),
+#        '--pathCritic=/home/users/jpikman/catkin_ws/src/fl4sr/src/data/FLDDPG-s-p-2-{}/weights/critic-final-4.pkl'.format(nid)]]
 
 SEEDS = [10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
 COMMAND_LIST = 1 * COMMAND_LIST
