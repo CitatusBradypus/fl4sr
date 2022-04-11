@@ -288,10 +288,14 @@ class Enviroment():
         distances_help = self.robot_target_distances_previous.copy()
         self.robot_target_distances_previous = robot_target_distances.copy()
         # restart robots
+        was_restarted = False
         robot_finished = self.robot_finished.copy()
         for i in range(self.robot_count):
             if self.robot_finished[i]:
                 self.reset(i)
+                was_restarted = True
+        if was_restarted:
+            states = self.get_current_states()
         # additional data to send
         data = {}
         data['x'] = x
@@ -492,7 +496,7 @@ class Enviroment():
         collisions = np.array(collisions)
         return lasers, collisions
 
-    def get_starting_states(self
+    def get_current_states(self
         ) -> np.ndarray:
         """Returns starting states.
 
