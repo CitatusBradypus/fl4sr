@@ -19,7 +19,8 @@ class IndividualDDPG():
     def __init__(self,
         episode_count: int,
         episode_step_count: int,
-        world: World
+        world: World,
+        name=None
         ) -> None:
         # global like variables
         self.TIME_TRAIN = 5
@@ -49,7 +50,10 @@ class IndividualDDPG():
         self.agents = self.init_agents()
         # loggers
         if not hasattr(self, 'NAME'):
-            self.NAME = 'IDDPG'
+            if name is not None:
+                self.NAME = name
+            else:
+                self.NAME = 'IDDPG'
         self.init_data()
         # debugging
         self.debug = False
@@ -207,6 +211,8 @@ class IndividualDDPG():
                     print(actions)
                 current_states = new_states
                 self.data_collect_test(step, robots_finished, robots_succeeded_once, data)
+                if np.any(robots_finished):
+                    break
             print('Robots succeded once: {}'.format(robots_succeeded_once))
             self.data_save_test(episode)
         self.enviroment.reset()

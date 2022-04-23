@@ -25,6 +25,7 @@ class PositiveWeightingDDPG(IndividualDDPG):
         world: World
         ) -> None:
         self.NAME = 'PWDDPG'
+        self.BUFFER_SIZE = 10000
         super().__init__(episode_count, episode_step_count, world)
         # get model coutns
         self.agents_count = len(self.agents)
@@ -33,7 +34,7 @@ class PositiveWeightingDDPG(IndividualDDPG):
         # averaging params
         self.TAU = 0.5
         # weights params
-        self.BETA = 0.5
+        self.BETA = 0.25
         return
 
     def agents_update(self,

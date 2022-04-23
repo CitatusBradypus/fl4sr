@@ -17,6 +17,7 @@ from SharedExperienceDDPG import SharedExperienceDDPG
 from FederatedLearningDDPG import FederatedLearningDDPG
 from PositiveWeightingDDPG import PositiveWeightingDDPG
 from RealWeightingDDPG import RealWeightingDDPG
+from MomentumAveragingDDPG import MomentumAveragingDDPG
 from worlds import BASELINE_WORLD
 from worlds import TURTLEBOT_WORLD_5
 from worlds import TURTLEBOT_WORLD_6
@@ -24,7 +25,7 @@ from worlds import EVAL_WORLD_0
 from worlds import EVAL_WORLD_1
 from worlds import EVAL_WORLD_2
 from worlds import EVAL_WORLD_3
-
+from worlds import TURTLEBOT_WORLD_5_STARTS
 
 # GLOBAL VARIABLES
 DDPG = None
@@ -33,7 +34,8 @@ METHODS = {'IDDPG': IndividualDDPG,
            'SNDDPG': SharedNetworkDDPG,
            'FLDDPG': FederatedLearningDDPG,
            'PWDDPG': PositiveWeightingDDPG,
-           'RWDDPG': RealWeightingDDPG}
+           'RWDDPG': RealWeightingDDPG,
+           'MADDPG': MomentumAveragingDDPG}
 
 EPISODE_COUNT = 125
 EPISODE_STEP_COUNT = 1024
@@ -83,7 +85,7 @@ def experiment_learn(
         if update_step is None and update_period is not None:
             DDPG.EPISODE_UPDATE = True
             DDPG.TIME_UPDATE = update_period
-        else:
+        elif update_period is not None:
             DDPG.EPISODE_UPDATE = False
             DDPG.TIME_UPDATE = update_period
     success, _, _ = DDPG.run()
@@ -126,6 +128,7 @@ def experiment_test(
     world_launch.start()
     time.sleep(5)
     # SETTINGS
+    EPISODE_COUNT = 32
     # set seeds
     if seed is not None:
         random.seed(seed)
@@ -146,11 +149,11 @@ def experiment_test(
             DDPG = pickle.load(f)
         DDPG.init_enviroment()
     else:
-        DDPG = IndividualDDPG(EPISODE_COUNT, EPISODE_STEP_COUNT, EVAL_WORLD)
+        DDPG = IndividualDDPG(EPISODE_COUNT, EPISODE_STEP_COUNT, EVAL_WORLD, 'EVAL-{}'.format(world_number))
         DDPG.agents_load(
             [path_actor],
             [path_critic]
-        )
+        ) 
     success, _, _ = DDPG.test()
     roscore_launch.shutdown()
     # RESULTS

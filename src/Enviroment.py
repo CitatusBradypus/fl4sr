@@ -141,7 +141,7 @@ class Enviroment():
                     start_index = np.random.randint(len(self.x_starts_all[id]))
                     self.x_starts[id] = self.x_starts_all[id][start_index]
                     self.y_starts[id] = self.y_starts_all[id][start_index]
-                    direction = -0.2 # + (np.random.rand() * np.pi / 2) - (np.pi / 4)
+                    direction = -0.2 #+ (np.random.rand() * np.pi / 2) - (np.pi / 4)
                     # generate new message
                     self.reset_tb3_messages[id] = \
                         self.create_model_state('tb3_{}'.format(rid), 
@@ -152,6 +152,8 @@ class Enviroment():
                     state_setter(self.reset_tb3_messages[id])
                     #state_setter(self.reset_target_messages[id])
                     self.robot_finished[id] = False
+                print('Starts x:', self.x_starts)
+                print('Starts y:', self.y_starts)
             except rospy.ServiceException as e:
                 print('Failed state setter!', e)
             #self.reset_world()
