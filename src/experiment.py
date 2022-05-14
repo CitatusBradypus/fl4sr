@@ -18,6 +18,7 @@ from FederatedLearningDDPG import FederatedLearningDDPG
 from PositiveWeightingDDPG import PositiveWeightingDDPG
 from RealWeightingDDPG import RealWeightingDDPG
 from MomentumAveragingDDPG import MomentumAveragingDDPG
+from AllDDPG import AllDDPG
 from worlds import BASELINE_WORLD
 from worlds import TURTLEBOT_WORLD_5
 from worlds import TURTLEBOT_WORLD_6
@@ -35,7 +36,8 @@ METHODS = {'IDDPG': IndividualDDPG,
            'FLDDPG': FederatedLearningDDPG,
            'PWDDPG': PositiveWeightingDDPG,
            'RWDDPG': RealWeightingDDPG,
-           'MADDPG': MomentumAveragingDDPG}
+           'MADDPG': MomentumAveragingDDPG,
+           'AllDDPG': AllDDPG}
 
 EPISODE_COUNT = 125
 EPISODE_STEP_COUNT = 1024
@@ -128,7 +130,7 @@ def experiment_test(
     world_launch.start()
     time.sleep(5)
     # SETTINGS
-    EPISODE_COUNT = 32
+    EPISODE_COUNT = 4
     # set seeds
     if seed is not None:
         random.seed(seed)

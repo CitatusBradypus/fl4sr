@@ -33,9 +33,9 @@ class RealWeightingDDPG(IndividualDDPG):
         self.actor_layers_count = len(self.agents[0].actor.layers)
         self.critic_layers_count = len(self.agents[0].critic.layers)
         # averaging params
-        self.TAU = 0.5
+        self.TAU = 1.0
         # weights params
-        self.BETA = 0.25
+        self.BETA = 0.5
         return
 
     def agents_update(self,

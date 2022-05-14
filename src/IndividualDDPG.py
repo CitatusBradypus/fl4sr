@@ -28,7 +28,7 @@ class IndividualDDPG():
         self.EPISODE_UPDATE = True
         self.TIME_UPDATE = 2
         self.TIME_LOGGER = 16
-        self.TIME_SAVE = 50
+        self.TIME_SAVE = 25
         # random actions
         self.EPSILON = 0.9
         self.EPSILON_DECAY = 0.99997
