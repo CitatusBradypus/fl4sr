@@ -10,12 +10,24 @@ from buffers import BasicBuffer, Transition
 import numpy as np
 
 class SharedNetworkDDPG(IndividualDDPG):
+    """Shared Network DDPG as described in thesis.
+
+    Args:
+        IndividualDDPG (): ...
+    """
 
     def __init__(self, 
         episode_count: int, 
         episode_step_count: int, 
         world: World
         ) -> None:
+        """Initialize SNDDPG.
+
+        Args:
+            episode_count (int): ...
+            episode_step_count (int): ...
+            world (World): contains information about experiment characteristics
+        """
         self.NAME = 'SNDDPG'
         self.BUFFER_SIZE = 70000
         super().__init__(episode_count, episode_step_count, world)
@@ -44,6 +56,14 @@ class SharedNetworkDDPG(IndividualDDPG):
     def agents_actions(self,
         states: np.ndarray,
         ) -> np.ndarray:
+        """Get actions for each agent from one network.
+
+        Args:
+            states (np.ndarray): ...
+
+        Returns:
+            np.ndarray: actions
+        """
         actions = []
         for i in range(self.robot_count):
             actions.append(self.agents[0].select_action(states[i]))
@@ -57,6 +77,16 @@ class SharedNetworkDDPG(IndividualDDPG):
         s_: np.ndarray, 
         f: np.ndarray
         ) -> None:
+        """Save all transitions to one shared buffer.
+        Arguments are named as described in thesis, only "D" is renamed to "f".
+
+        Args:
+            s (np.ndarray): ...
+            a (np.ndarray): ...
+            r (np.ndarray): ...
+            s_ (np.ndarray): ...
+            f (np.ndarray): ...
+        """
         for i in range(self.robot_count):
             self.buffers[0].add([Transition(s[i], a[i], r[i], s_[i], f[i])])
         return

@@ -19,12 +19,24 @@ Means = namedtuple('Averages', 'aw, ab, cw, cb')
 
 
 class RealWeightingDDPG(IndividualDDPG):
+    """Real Weighting DDPG as decribed in thesis.
+    
+    Args:
+        IndividualDDPG (): ...
+    """
 
     def __init__(self, 
         episode_count: int, 
         episode_step_count: int, 
         world: World
         ) -> None:
+        """Initialize RWDDPG.
+
+        Args:
+            episode_count (int): ...
+            episode_step_count (int): ...
+            world (World): contains information about experiment characteristics
+        """
         self.NAME = 'RWDDPG'
         self.BUFFER_SIZE = 10000
         super().__init__(episode_count, episode_step_count, world)
@@ -41,6 +53,11 @@ class RealWeightingDDPG(IndividualDDPG):
     def agents_update(self,
         rewards: np.ndarray
         ) -> None:
+        """Update all agents.
+
+        Args:
+            rewards (np.ndarray): average rewards obtained by agents between updates
+        """
         means = self.get_means(rewards)
         self.agents_update_models(means)
         return
@@ -48,6 +65,14 @@ class RealWeightingDDPG(IndividualDDPG):
     def get_means(self,
         rewards: np.ndarray
         ) -> tuple:
+        """Compute weighted mean parameter values of agents according to their rewards.
+
+        Args:
+            rewards (np.ndarray): average rewards obtained by agents between updates
+
+        Returns:
+            tuple: Averages
+        """
         # init values
         actor_mean_weights = [None] * self.actor_layers_count
         actor_mean_bias = [None] * self.actor_layers_count
@@ -83,6 +108,11 @@ class RealWeightingDDPG(IndividualDDPG):
     def agents_update_models(self, 
         means: tuple
         ) -> None:
+        """Update parameter values of agents using computed means.
+
+        Args:
+            means (tuple): Averages
+        """
         for i in range(self.agents_count):
             for j in range(self.actor_layers_count):
                 self.agents[i].actor.layers[j].weight.data = \
