@@ -14,13 +14,13 @@ VectorTransitions = namedtuple('VectorTransitions', 's a r s_ f')
 
 class BasicBuffer():
     """Implementation of simple circular buffer.
-        (for some reason python doesn't have this one implemented)
+    (for some reason python doesn't have this one implemented)
     """
     
     def __init__(self, 
         max_size: int
         ) -> None:
-        """Creates and already initialazes full circular buffer.
+        """Creates and already initializes full circular buffer.
 
         Args:
             max_size (int): Buffer size.
@@ -92,14 +92,15 @@ class BasicBuffer():
 
 
 class PrioritizedExperienceReplayBuffer():
-    """Implementation of simple circular buffer.
-        (for some reason python doesn't have this one implemented)
+    """Implementation of prioritized experience replay buffer.
+    Implemented without sum tree, therefore it's realy slow.
+    It should not be used, ever.
     """
     
     def __init__(self, 
         max_size: int
         ) -> None:
-        """Creates and already initialazes full circular buffer.
+        """Creates and already initialazes experience replay buffer.
 
         Args:
             max_size (int): Buffer size.
@@ -153,9 +154,7 @@ class PrioritizedExperienceReplayBuffer():
         batch_size: int
         ) -> tuple:
         """Sample batch from buffer according to PER rules.
-
-            If buffer is not as large as batch_size method fails and returns 
-            None.
+        If buffer is not as large as batch_size method fails and returns None.
 
         Args:
             batch_size (int): Amount of sampled transitions.
@@ -195,6 +194,11 @@ class PrioritizedExperienceReplayBuffer():
     def update(self,
         td_errors: np.ndarray
         ) -> None:
+        """Updated PER buffer values.
+
+        Args:
+            td_errors (np.ndarray): errors of selected samples
+        """
         assert len(self._sample_fresh_indexes) + len(self._sample_sorted_indexes) == len(td_errors), 'ERROR: PER buffer wrong update dimensions!'
         # set td errors to fresh indexes
         fresh_pairs = self._fresh_array[self._sample_fresh_indexes, :]

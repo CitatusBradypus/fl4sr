@@ -157,6 +157,12 @@ class DDPG:
         path_actor: str, 
         path_critic: str
         ) -> None:
+        """Save weight to determined paths.
+
+        Args:
+            path_actor (str): ...
+            path_critic (str): ...
+        """
         torch.save(self.actor.state_dict(),
                    path_actor)
         torch.save(self.critic.state_dict(),
@@ -167,6 +173,12 @@ class DDPG:
         path_actor: str, 
         path_critic: str
         ) -> None:
+        """Load weights from determined paths.
+
+        Args:
+            path_actor (str): ...
+            path_critic (str): ...
+        """
         self.actor.load_state_dict(torch.load(path_actor))
         self.critic.load_state_dict(torch.load(path_critic))
         return
@@ -183,7 +195,7 @@ def update_parameters(
         target (nn.Module): Update destination
         source (nn.Module): Update source
         tau (float, optional): Update constant for soft weight update. 
-            Defaults to 0.
+            Defaults to 1.
     """
     for target_parameter, source_parameter in zip(target.parameters(), source.parameters()):
         target_parameter.data.copy_((1 - rho) * target_parameter + rho * source_parameter)

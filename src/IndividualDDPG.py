@@ -22,6 +22,14 @@ class IndividualDDPG():
         world: World,
         name=None
         ) -> None:
+        """Initialize class and whole experiment.
+
+        Args:
+            episode_count (int): ...
+            episode_step_count (int): ...
+            world (World): contains information about experiment characteristics
+            name (str, optional): Name of used method. Defaults to None.
+        """
         # global like variables
         self.TIME_TRAIN = 5
         self.TIME_TARGET = 5
@@ -65,6 +73,8 @@ class IndividualDDPG():
 
     def init_enviroment(self
         ) -> None:
+        """Initializes environment.
+        """
         self.enviroment = Enviroment(self.world)
         self.observation_dimension = self.enviroment.observation_dimension
         self.action_dimension = self.enviroment.action_dimension
@@ -93,6 +103,8 @@ class IndividualDDPG():
                 for i in range(self.robot_count)]
 
     def init_paths(self):
+        """Initializes and creates file system for saving obtained information.
+        """
         path_data = HOME + '/catkin_ws/src/fl4sr/src/data'
         name_run = self.NAME + '-' + time.strftime("%Y%m%d-%H%M%S")
         self.path_run = path_data + '/' + name_run
@@ -106,6 +118,8 @@ class IndividualDDPG():
 
     def init_data(self
         ) -> None:
+        """Initializes data containers.
+        """
         self.average_rewards = np.zeros((self.episode_count, self.robot_count))
         self.robots_succeeded_once = np.zeros((self.episode_count, self.robot_count), dtype=bool)        
         self.robots_finished = np.zeros((self.episode_count, self.robot_count), dtype=bool)
@@ -114,17 +128,27 @@ class IndividualDDPG():
 
     def init_data_test(self
         ) -> None:
+        """Initializes data containers for evaluation.
+        """
         self.robots_succeeded_once = np.zeros((self.episode_step_count, self.robot_count), dtype=bool)        
         self.robots_finished = np.zeros((self.episode_step_count, self.robot_count), dtype=bool)
         self.data = []      
         return
 
     def terminate_enviroment(self):
+        """Sets enviroment to None. 
+        Used before saving whole class when error is encountered.
+        """
         self.enviroment = None
         return
 
     def run(self
         ) -> tuple:
+        """Runs learning experiment.
+
+        Returns:
+            tuple: bool success (no errors encoutered), error episode, error step
+        """
         # before start
         self.parameters_save()
         self.print_starting_info()
@@ -186,7 +210,12 @@ class IndividualDDPG():
         return True, None, None
 
     def test(self
-        ) -> None:
+        ) -> tuple:
+        """Runs evaluation experiment.
+
+        Returns:
+            tuple: bool success (no errors encountered), error episode, error step
+        """
         # before start
         self.init_data_test()
         self.parameters_save()
@@ -221,6 +250,14 @@ class IndividualDDPG():
     def agents_actions(self,
         states: np.ndarray,
         ) -> np.ndarray:
+        """Get actions of all agents.
+
+        Args:
+            states (np.ndarray): ...
+
+        Returns:
+            np.ndarray: actions
+        """
         actions = []
         for i in range(self.robot_count):
             actions.append(self.agents[i].select_action(states[i]))
@@ -234,6 +271,16 @@ class IndividualDDPG():
         s_: np.ndarray, 
         f: np.ndarray
         ) -> None:
+        """Save transitions to buffers.
+        Args as described in thesis, only "D" is named as "f".
+
+        Args:
+            s (np.ndarray): ...
+            a (np.ndarray): ...
+            r (np.ndarray): ...
+            s_ (np.ndarray): ...
+            f (np.ndarray): ...
+        """
         for i in range(self.robot_count):
             self.buffers[i].add([Transition(s[i], a[i], r[i], s_[i], f[i])])
         return
@@ -242,6 +289,15 @@ class IndividualDDPG():
         actions: np.ndarray,
         episode: int
         ) -> np.ndarray:
+        """Add random actions.
+
+        Args:
+            actions (np.ndarray): ...
+            episode (int): not used
+
+        Returns:
+            np.ndarray: actions possibly with some actions randomized
+        """
         # get current actions
         angles_a = actions[:, 0]
         linears_a = actions[:, 1]
@@ -263,21 +319,36 @@ class IndividualDDPG():
 
 
     def agents_train(self):
+        """Train all agents.
+        """
         for agent in self.agents:
             agent.train() 
         return
 
     def agents_target(self):
+        """Update target networks of all agents.
+        """
         for agent in self.agents:
             agent.update_targets() 
         return
 
     def agents_update(self, rewards):
+        """Update parameters of agents.
+        (Obviously empty for IDDPG, SEDDPG, and SNDDPG)
+
+        Args:
+            rewards (np.array): average rewards obtained by agents between updates 
+        """
         return
 
     def agents_save(self, 
         episode:int=None
         ) -> None:
+        """Save weights of agents.
+
+        Args:
+            episode (int, optional): Current episode for file naming. Defaults to None.
+        """
         if episode is None:
             episode = 'final'
         for i in range(len(self.agents)):
@@ -291,6 +362,12 @@ class IndividualDDPG():
         paths_actor: list, 
         paths_critic: list
         ) -> None:
+        """Load weights of agents.
+
+        Args:
+            paths_actor (list): list of paths to actors
+            paths_critic (list): list of paths to critics
+        """
         assert len(paths_actor) == len(paths_critic) == len(self.agents), 'Wrong load size!'
         for i in range(len(self.agents)):
             self.agents[i].weights_load(paths_actor[i], 
@@ -303,6 +380,13 @@ class IndividualDDPG():
         total_rewards, 
         robots_succeeded_once
         ) -> None:
+        """Collect data from learning experiments.
+
+        Args:
+            episode (int): ...
+            total_rewards (np.ndarray): ...
+            robots_succeeded_once (np.ndarray): ...
+        """
         self.average_rewards[episode] = total_rewards / self.episode_step_count
         self.robots_succeeded_once[episode] = robots_succeeded_once
         if episode != 0:
@@ -318,6 +402,14 @@ class IndividualDDPG():
         robots_succeeded_once,
         data
         ) -> None:
+        """Collect data from evaluating experiments.
+
+        Args:
+            step (int): ...
+            robots_finished (np.ndarray): ...
+            robots_succeeded_once (np.ndarray): ...
+            data (_type_): additional collected information for each step
+        """
         self.robots_finished[step] = robots_finished
         self.robots_succeeded_once[step] = robots_succeeded_once
         self.data.append(data)
@@ -326,6 +418,11 @@ class IndividualDDPG():
     def data_save(self, 
         episode:int=None
         ) -> None:
+        """Save collected data form learning.
+
+        Args:
+            episode (int, optional): ... . Defaults to None.
+        """
         np.save(self.path_log + '/rewards'.format(), 
                 self.average_rewards)
         np.save(self.path_log + '/succeded'.format(),
@@ -335,6 +432,11 @@ class IndividualDDPG():
     def data_save_test(self, 
         episode:int=None
         ) -> None:
+        """Save collected data from evaluating.
+
+        Args:
+            episode (int, optional): ... . Defaults to None.
+        """
         np.save(self.path_log + '/finished-{}'.format(episode), 
                 self.robots_finished)
         np.save(self.path_log + '/succeded-{}'.format(episode),
@@ -345,6 +447,8 @@ class IndividualDDPG():
 
     def parameters_save(self
         ) -> None:
+        """Save used parameters to file.
+        """
         parameters = {}
         # method parameters
         parameters['NAME'] = self.NAME
@@ -385,6 +489,11 @@ class IndividualDDPG():
     def print_starting_info(self, 
         training: bool=True
         ) -> None:
+        """Print staring information about experiment.
+
+        Args:
+            training (bool, optional): ... . Defaults to True.
+        """
         print('{}'.format(self.NAME))
         print('----------------')
         print('Episodes = {}'.format(self.episode_count))

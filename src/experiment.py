@@ -53,7 +53,7 @@ def experiment_learn(
         update_step: int,
         update_period: int,
     ) -> bool:
-    """Run experiment with specified values.
+    """Run learning experiment with specified values.
 
     Returns:
         bool: If program finished correctly.
@@ -111,7 +111,7 @@ def experiment_test(
         path_actor: str,
         path_critic: str
     ) -> bool:
-    """Run experiment with specified values.
+    """Run evaluation experiment with specified values.
 
     Returns:
         bool: If program finished correctly.
@@ -169,11 +169,14 @@ def experiment_test(
             f.write('RESTART')
     return success
 
-
 if __name__ == '__main__':
+    # Experiments are defined by changing parameters in this file 
+    # and also by setting arguments while starting running.
+
     # LOG SETTINGS
     np.set_printoptions(precision=3, suppress=True)
-    # PARSE
+
+    # PARSE and their descriptions
     parser = argparse.ArgumentParser(
         description='Experiment script for fl4sr project.')
     parser.add_argument(
@@ -213,8 +216,10 @@ if __name__ == '__main__':
         type=int,
         help='Period of federated update.')
     args = parser.parse_args()
+    
     # ARGUMENTS
     assert args.method in METHODS, 'ERROR: Unknown method name.'
+    
     # EXPERIMENT
     if args.learn:
         experiment_learn(args.method, args.restart, args.seed, args.updateStep, args.updatePeriod)

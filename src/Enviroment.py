@@ -33,7 +33,7 @@ class Enviroment():
         """Initializes eviroment.
 
         Args:
-            world (World): Holds enviroment variables
+            world (World): holds enviroment variables
         """
         # params        
         self.COLLISION_RANGE = 0.25
@@ -79,7 +79,6 @@ class Enviroment():
                                      0)
             for id, rid in enumerate(self.robot_indexes)]
         self.command_empty = Twist()
-
         # basic settings
         self.node = rospy.init_node('turtlebot_env', anonymous=True)
         self.rate = rospy.Rate(100)
@@ -122,12 +121,10 @@ class Enviroment():
         robot_id: int=-1
         ) -> None:
         """Resets robots to starting state.
-           
-           If robot_id is empty all robots will be reseted.
+        If robot_id is empty all robots will be reseted.
 
         Args:
-            robot_id (int, optional): Id of robot to reset. 
-                Defaults to -1.
+            robot_id (int, optional): Id of robot to reset. Defaults to -1.
         """
         # wait for services
         rospy.wait_for_service('/gazebo/reset_simulation')
@@ -197,8 +194,7 @@ class Enviroment():
 
         Args:
             actions (np.ndarray): Action of each robot.
-            time_step (float, optional): Duration of taken step. 
-                Defaults to 0.1.
+            time_step (float, optional): Duration of taken step. Defaults to 0.1.
 
         Returns:
             tuple: states (np.ndarray), 
@@ -306,33 +302,6 @@ class Enviroment():
 
         return states, rewards, robot_finished, self.robot_succeeded, False, data
 
-    '''
-    def init_subscribers(self
-        ) -> None:
-        # basic settings
-        self.node = rospy.init_node('turtlebot_env', anonymous=True)
-        self.rate = rospy.Rate(100)
-        # ...
-        rospy.wait_for_service('/gazebo/pause_physics')
-        self.pause = rospy.ServiceProxy('/gazebo/pause_physics', Empty)
-        rospy.wait_for_service('/gazebo/unpause_physics')
-        self.unpause = rospy.ServiceProxy('/gazebo/unpause_physics', Empty)
-        # positional info getter
-        self.position_info_getter = InfoGetter()
-        self._position_subscriber = rospy.Subscriber("/gazebo/model_states",
-                                                     ModelStates,
-                                                     self.position_info_getter)
-        # lasers info getters, subscribers unused
-        self.laser_info_getter = [InfoGetter() for i in range(self.robot_count)]
-        self._laser_subscriber = \
-            [rospy.Subscriber('/tb3_{}/scan'.format(i),
-                              LaserScan,
-                              self.laser_info_getter[i])
-            for i in range(self.robot_count)]
-        rospy.wait_for_message('/tb3_0/scan', LaserScan)
-        return
-    '''
-
     def create_model_state(self, 
         name: str,
         pose_x: float,
@@ -368,8 +337,7 @@ class Enviroment():
         """Creates list with indexes of robots in model state.
 
         Args:
-            model_state (ModelStates, optional): Source of robot indexes. 
-                Defaults to None.
+            model_state (ModelStates, optional): Source of robot indexes. Defaults to None.
 
         Returns:
             list: Robot indexes. ('tb_2' index is list[2])

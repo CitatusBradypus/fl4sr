@@ -10,6 +10,8 @@ HOME = os.environ['HOME']
 sys.path.append(HOME + '/catkin_ws/src/fl4sr/src')
 
 # COMMANDS
+# Commands are saved to command list, which are then then run.
+# This is done so the experiment can be restarted after encoutering error.
 COMMAND_LIST = [
     #['rosrun', 'fl4sr', 'experiment.py', 'learn=True', 'IDDPG'],
     #['rosrun', 'fl4sr', 'experiment.py', 'learn=True', 'SEDDPG'],
@@ -53,12 +55,14 @@ for eid in range(4, 8+1):
 #        '--pathActor=/home/users/jpikman/catkin_ws/src/fl4sr/src/data/PWDDPG-b-0.5-{}/weights/actor-final-4.pkl'.format(nid),
 #        '--pathCritic=/home/users/jpikman/catkin_ws/src/fl4sr/src/data/PWDDPG-b-0.5-{}/weights/critic-final-4.pkl'.format(nid)]]
 
-# PRINT 
+# PRINT
+# Print all commands to before their execution.
 for i in range(len(COMMAND_LIST)):    
     print(COMMAND_LIST[i])
 #exit(0)
 
 # RUN
+# Execute each command until the success.
 for command in COMMAND_LIST:
     success = False
     restart_command = []
