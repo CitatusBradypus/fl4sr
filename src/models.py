@@ -4,6 +4,7 @@ import os
 from matplotlib.pyplot import step
 HOME = os.environ['HOME']
 sys.path.append(HOME + '/catkin_ws/src/fl4sr/src')
+print(f"sys.path: {sys.path}")
 import torch
 import torch.nn as nn
 

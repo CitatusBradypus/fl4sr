@@ -36,7 +36,7 @@ class Enviroment():
             world (World): holds enviroment variables
         """
         # params        
-        self.COLLISION_RANGE = 0.25
+        self.COLLISION_RANGE = 0.27
         self.GOAL_RANGE = 0.5
         self.REWARD_GOAL = 100.0
         self.REWARD_COLLISION = -10.0
@@ -66,8 +66,8 @@ class Enviroment():
         self.x_targets = np.array(self.targets).T[0]
         self.y_targets = np.array(self.targets).T[1]
         # create restart enviroment messages
-        self.reset_tb3_messages = \
-            [self.create_model_state('tb3_{}'.format(rid), 
+        self.reset_tb2_messages = \
+            [self.create_model_state('tb2_{}'.format(rid), 
                                      self.x_starts[id], 
                                      self.y_starts[id],
                                      -0.2)
@@ -89,7 +89,7 @@ class Enviroment():
 
         # publishers for turtlebots
         self.publisher_turtlebots = \
-            [rospy.Publisher('/tb3_{}/cmd_vel'.format(i), 
+            [rospy.Publisher('/tb2_{}/cmd_vel_mux/input/navi'.format(i), 
                              Twist, 
                              queue_size=1) 
             for i in self.robot_indexes]
@@ -101,7 +101,7 @@ class Enviroment():
         # lasers info getters, subscribers unused
         self.laser_info_getter = [InfoGetter() for i in range(self.robot_count)]
         self._laser_subscriber = \
-            [rospy.Subscriber('/tb3_{}/scan'.format(rid), 
+            [rospy.Subscriber('/tb2_{}/scan'.format(rid), 
                               LaserScan, 
                               self.laser_info_getter[id]) 
             for id, rid in enumerate(self.robot_indexes)]
@@ -140,13 +140,13 @@ class Enviroment():
                     self.y_starts[id] = self.y_starts_all[id][start_index]
                     direction = -0.2 #+ (np.random.rand() * np.pi / 2) - (np.pi / 4)
                     # generate new message
-                    self.reset_tb3_messages[id] = \
-                        self.create_model_state('tb3_{}'.format(rid), 
+                    self.reset_tb2_messages[id] = \
+                        self.create_model_state('tb2_{}'.format(rid), 
                                              self.x_starts[id], 
                                              self.y_starts[id],
                                              direction)
                     # reset enviroment position
-                    state_setter(self.reset_tb3_messages[id])
+                    state_setter(self.reset_tb2_messages[id])
                     #state_setter(self.reset_target_messages[id])
                     self.robot_finished[id] = False
                 print('Starts x:', self.x_starts)
@@ -157,7 +157,7 @@ class Enviroment():
         else:
             try:
                 state_setter = rospy.ServiceProxy('/gazebo/set_model_state', SetModelState)
-                state_setter(self.reset_tb3_messages[robot_id])
+                state_setter(self.reset_tb2_messages[robot_id])
                 #state_setter(self.reset_target_messages[robot_id])
                 self.robot_finished[robot_id] = False
             except rospy.ServiceException as e:
@@ -181,7 +181,7 @@ class Enviroment():
         # wait for new scan message, so that laser values are updated
         # kinda cheeky but it works on my machine :D
         self.unpause()
-        rospy.wait_for_message('/tb3_{}/scan'.format(self.robot_indexes[0]), LaserScan)
+        rospy.wait_for_message('/tb2_{}/scan'.format(self.robot_indexes[0]), LaserScan)
         self.pause()
         return
     
@@ -346,7 +346,7 @@ class Enviroment():
         if model_state is None:
             model_state = self.position_info_getter.get_msg()
         for i in range(len(model_state.name)):
-            if 'tb3' in model_state.name[i]:
+            if 'tb2' in model_state.name[i]:
                 robots[int(model_state.name[i][-1])] = i
         return robots
 
