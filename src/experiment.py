@@ -68,7 +68,7 @@ def experiment_learn(
     print('Simulation: Ready to start!')
     uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
     roslaunch.configure_logging(uuid)
-    world_launch = roslaunch.parent.ROSLaunchParent(uuid, ['/home/users/jpikman/catkin_ws/src/fl4sr/launch/frl_6.launch'])
+    world_launch = roslaunch.parent.ROSLaunchParent(uuid, [HOME + '/catkin_ws/src/fl4sr/launch/frl_6.launch'])
     world_launch.start()
     time.sleep(5)
     # SETTINGS
@@ -126,7 +126,7 @@ def experiment_test(
     print('Simulation: Ready to start!')
     uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
     roslaunch.configure_logging(uuid)
-    world_launch = roslaunch.parent.ROSLaunchParent(uuid, ['/home/users/jpikman/catkin_ws/src/fl4sr/launch/fl4sr_eval.launch'])
+    world_launch = roslaunch.parent.ROSLaunchParent(uuid, [HOME + '/catkin_ws/src/fl4sr/launch/fl4sr_eval.launch'])
     world_launch.start()
     time.sleep(5)
     # SETTINGS
