@@ -78,9 +78,9 @@ class IndividualDDPG():
         ) -> None:
         """Initializes environment.
         """
-        if self.env == 'Enviroment'
+        if self.env == 'Enviroment':
             self.enviroment = Enviroment(self.world)
-        elif self.env == 'RealEnviroment'
+        elif self.env == 'RealEnviroment':
             self.enviroment = RealEnviroment(self.world)
         else: raise Exception(f"No Environment named {self.env} is available.")
         self.observation_dimension = self.enviroment.observation_dimension
@@ -169,15 +169,18 @@ class IndividualDDPG():
         self.parameters_save()
         self.print_starting_info()
         total_rewards = np.zeros(self.robot_count)
+        print(f"self.env: {self.env}")
         # epizode loop
         for episode in range(self.episode_error, self.episode_count):
             self.enviroment.reset()
+            print(f"environment reset.")
             current_states = self.enviroment.get_current_states()
             data_total_rewards = np.zeros(self.robot_count)
             if self.episode_error != episode:
                 self.episode_step_error = 0
             for step in range(self.episode_step_error, self.episode_step_count):
                 # get actions
+                print("got action")
                 actions = self.agents_actions(current_states)
                 actions = self.actions_add_random(actions, episode)
                 # perform step
@@ -281,8 +284,10 @@ class IndividualDDPG():
             current_states = self.enviroment.get_current_states()
             if self.episode_error != episode:
                 self.episode_step_error = 0
+            print(f"timer started")
             start_time = time.time()
             for step in range(0, self.episode_step_count):
+                print(f"step started: {step}")
                 actions = self.agents_actions(current_states)
                 new_states, rewards, robots_finished, robots_succeeded_once, error, data = self.enviroment.step(actions)
                 if error:

@@ -17,6 +17,7 @@ from sensor_msgs.msg import LaserScan
 from gazebo_msgs.msg import ModelStates
 from gazebo_msgs.msg import ModelState
 from gazebo_msgs.srv import SetModelState
+from nav_msgs.msg import Odometry
 from std_srvs.srv import Empty
 from tf.transformations import euler_from_quaternion
 
@@ -62,8 +63,8 @@ class RealEnviroment():
         self.x_starts_all = world.x_starts
         self.y_starts_all = world.y_starts
 
-        self.x_starts = [x[0] for x in world.x_starts]
-        self.y_starts = [y[0] for y in world.y_starts]
+        self.x_starts = [x for x in world.x_starts]
+        self.y_starts = [y for y in world.y_starts]
 
         self.targets = world.target_positions
         self.x_targets = np.array(self.targets).T[0]
@@ -93,21 +94,21 @@ class RealEnviroment():
 
         # publishers for turtlebots
         self.publisher_turtlebots = \
-            [rospy.Publisher('/tb2_{}/mobile_base/commands/velocity'.format(i), 
+            [rospy.Publisher('/mobile_base/commands/velocity'.format(i), 
                              Twist, 
                              queue_size=1) 
             for i in self.robot_indexes]
 
         # positional info getter # TODO let's change this with whycodes.
         self.position_info_getter = InfoGetter()
-        self._position_subscriber = rospy.Subscriber("/gazebo/model_states", 
-                                                     ModelStates, 
+        self._position_subscriber = rospy.Subscriber("/odom", 
+                                                     Odometry, 
                                                      self.position_info_getter)
 
         # lasers info getters, subscribers unused
         self.laser_info_getter = [InfoGetter() for i in range(self.robot_count)]
         self._laser_subscriber = \
-            [rospy.Subscriber('/tb2_{}/scan_sparse'.format(rid), 
+            [rospy.Subscriber('/scan'.format(rid), 
                               LaserScan, 
                               self.laser_info_getter[id]) 
             for id, rid in enumerate(self.robot_indexes)]
@@ -195,7 +196,7 @@ class RealEnviroment():
     ) -> None:
         '''Manual Reset'''
         input("Press Enter after manually reposition the robots...")
-
+        print(f"Now it is running ...")
 
 
     
@@ -218,39 +219,47 @@ class RealEnviroment():
                    error (bool)
                    data (dict)
         """
+        print("step started")
         assert len(actions) == self.robot_count, 'Wrong actions dimension!'
         # generate twists, also get separate values of actions
         twists = [self.action_to_twist(action) for action in actions]
-        actions_linear_x = actions.T[1]
-        actions_angular_z = actions.T[0]
+        actions_linear_x = actions[0][0]
+        actions_angular_z = actions[0][1]
+        print(f"actions: {actions}")
+        one_twist =Twist()
+        one_twist.linear.x = actions_linear_x
+        one_twist.angular.z = actions_angular_z
+        for i in range(self.robot_count):
+            self.publisher_turtlebots[i].publish(one_twist)
         # publish twists
         # self.pause()
-        
+        print("timing started")
         # start of timing !!! changed to rospy time !!!
-        start_time = rospy.get_time()
+        start_time = time.time() #rospy.get_time()
         running_time = 0
         # move robots with action for time_step        
-        
-        while(running_time < time_step):
-            self.rate.sleep()
-            running_time = rospy.get_time() - start_time
+        print("timinig iee") 
+        while(time.time()-start_time < time_step):
+            time.sleep(0.01)
+            #print(f"in the while loop... : {time.time()-start_time}")
+            
         # Publishing Empty Twist to run the robot only for 0.1 s
+        print("timing ended")
 
-
-        for i in range(self.robot_count):
-            self.publisher_turtlebots[i].publish(Twist())
+        #for i in range(self.robot_count):
+        #    self.publisher_turtlebots[i].publish(Twist())
         # send empty commands to robots
         # self.unpause()
         # read current positions of robots
-        model_state = self.position_info_getter.get_msg()
-        robot_indexes = self.get_robot_indexes_from_model_state(model_state)
-        x, y, theta, correct = self.get_positions_from_model_state(model_state, 
-                                                                   robot_indexes)
+        odom = self.position_info_getter.get_msg()
+        robot_indexes = self.get_robot_indexes_from_odom(odom)
+        x, y, theta, correct = self.get_positions_from_odom(odom, robot_indexes)
+        print("odom ended")
         # check for damaged robots
         if np.any(np.isnan(correct)):
             print('ERROR: Enviroment: nan robot twist detected!')
             return None, None, None, None, True, None
-
+        
         theta = theta % (2 * np.pi)
         # get current distance to goal
         robot_target_distances = self.get_distance(x, self.x_targets, 
@@ -261,8 +270,8 @@ class RealEnviroment():
         robot_target_angle = robot_target_angle % (2 * np.pi)
         robot_target_angle_difference = (robot_target_angle - theta - np.pi) % (2 * np.pi) - np.pi
         # get current laser measurements
-        robot_lasers, robot_collisions = self.get_robot_lasers_collisions()
-
+        robot_lasers, robot_collisions = self.get_robot_lasers_collisions_sparse()
+        print("state obtained")
         # create state array 
         # = lasers (24), 
         #   action linear x (1), action angular z (1), 
@@ -318,7 +327,7 @@ class RealEnviroment():
         data['x'] = x
         data['y'] = y
         data['theta'] = theta
-
+        print(f"step ended")
         return states, rewards, robot_finished, self.robot_succeeded, False, data
 
     # def create_model_state(self, 
@@ -350,6 +359,22 @@ class RealEnviroment():
     #     model_state.pose.orientation.w = 0.0
     #     return model_state
 
+    def get_robot_indexes_from_odom(self,
+        odom: Odometry=None
+        ) -> list:
+        # TODO needs to be changed with whycode
+        """Creates list with indexes of robots in model state.
+
+        Args:
+            model_state (ModelStates, optional): Source of robot indexes. Defaults to None.
+
+        Returns:
+            list: Robot indexes. ('tb_2' index is list[2])
+        """
+        robots = [0 for i in range(len(self.robot_alives))]
+        if odom is None:
+            odom = self.position_info_getter.get_msg()
+        return robots
 
     def get_robot_indexes_from_model_state(self,
         model_state: ModelStates=None
@@ -438,6 +463,37 @@ class RealEnviroment():
         theta = np.array(theta)
         correct = np.array(correct)
         return x, y, theta, correct
+    def get_positions_from_odom(self,
+        odom: Odometry,
+        robot_indexes: list
+        ) -> tuple:
+        # TODO I think it will be great whycode can produce output in ModelState
+        """Get positional information from model_state
+
+        Args:
+            model_state (ModelStates): Information source.
+            robot_indexes (list): List of robot indexes.
+
+        Returns:
+            tuple: x, y, theta ndarrays of robots
+        """
+        x, y, theta, correct = [], [], [], []
+        for rid in self.robot_indexes:
+            index = robot_indexes[rid]
+            pose = odom.pose.pose
+            twist = odom.twist.twist
+            x.append(pose.position.x)
+            y.append(pose.position.y)
+            theta.append(euler_from_quaternion((pose.orientation.x,
+                                                pose.orientation.y,
+                                                pose.orientation.z,
+                                                pose.orientation.w,))[2])
+            correct.append(twist.angular.x)
+        x = np.array(x)
+        y = np.array(y)
+        theta = np.array(theta)
+        correct = np.array(correct)
+        return x, y, theta, correct
 
     def get_angle(self,
         x_0: np.ndarray,
@@ -459,6 +515,37 @@ class RealEnviroment():
         x_diff = x_0 - x_1
         y_diff = y_0 - y_1
         return np.arctan2(y_diff, x_diff)
+
+    def get_robot_lasers_collisions_sparse(self,
+        ) -> tuple:
+        """Returns values of all robots lasers and if robots collided.
+
+        Returns:
+            tuple: lasers, collisions
+        """
+        # laser: 760->24
+        lasers = []
+        collisions = [False for i in range(self.robot_count)]
+        # each robot
+        for i in range(self.robot_count):
+            lasers.append([])
+            scan = self.laser_info_getter[i].get_msg()
+            # each laser in scan
+            for j in range(len(scan.ranges)):
+                lasers[i].append(0)
+                if scan.ranges[j] == float('Inf'):
+                    lasers[i][j] = 3.5
+                elif np.isnan(scan.ranges[j]):
+                    lasers[i][j] = 0
+                else:
+                    lasers[i][j] = scan.ranges[j]
+            if self.COLLISION_RANGE > min(lasers[i]) > 0:
+                collisions[i] = True
+            lasers = [l for k, l in enumerate(lasers[i]) if k % 32==0]
+        print(f"length of lasers: {len(lasers)}")
+        lasers = np.array(lasers).reshape(self.robot_count, 24)
+        collisions = np.array(collisions)
+        return lasers, collisions
 
     def get_robot_lasers_collisions(self,
         ) -> tuple:
@@ -495,10 +582,12 @@ class RealEnviroment():
         Returns:
             np.ndarray: Starting states.
         """
-        model_state = self.position_info_getter.get_msg()
-        robot_indexes = self.get_robot_indexes_from_model_state(model_state)
-        x, y, theta, _ = self.get_positions_from_model_state(model_state, 
-                                                             robot_indexes)
+        print(f"print state started")
+        odom = self.position_info_getter.get_msg()
+        robot_indexes = self.get_robot_indexes_from_odom(odom)
+        print(f"robot_indexs:{robot_indexes}")
+        x, y, theta, _ = self.get_positions_from_odom(odom,robot_indexes)
+        print(f"odom: {odom}")
         # get current distance to goal
         robot_target_distances = self.get_distance(x, self.x_targets, 
                                                    y, self.y_targets)
@@ -507,8 +596,9 @@ class RealEnviroment():
                                             self.y_targets, y)
         robot_target_angle_difference = (robot_target_angle - theta - np.pi) % (2 * np.pi) - np.pi
         # get current laser measurements
-        robot_lasers, robot_collisions = self.get_robot_lasers_collisions()
-        
+        print(f"laser")
+        robot_lasers, robot_collisions = self.get_robot_lasers_collisions_sparse()
+        print(f"shape of laser: {robot_lasers.shape}")
         # create state array 
         # = lasers (24), 
         #   action linear x (1), action angular z (1), 

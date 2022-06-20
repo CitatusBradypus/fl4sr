@@ -275,10 +275,13 @@ if __name__ == '__main__':
     assert args.method in METHODS, 'ERROR: Unknown method name.'
     
     # EXPERIMENT
-    if args.mode == 'train':
+    if args.mode == 'learn':
+        print(f"It is in learning mode.")
         experiment_learn(args.method, args.restart, args.seed, args.updateStep, args.updatePeriod)
     elif args.mode == 'real':
+        print(f"It is in real mode")
         experiment_real(args.restart, args.seed, args.worldNumber, args.pathActor, args.pathCritic)
     elif args.mode == 'eval':
+        print(f"It is in eval mode")
         experiment_test(args.restart, args.seed, args.worldNumber, args.pathActor, args.pathCritic)
     else: raise Exception('Wrong mode!')

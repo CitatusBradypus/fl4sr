@@ -13,7 +13,7 @@ do
     for method in ${methods[*]}
     do
         python experiment.py \
-        learn=True \
+        --mode='learn' \
         $method \
         --seed $(expr $i + 100)
     done

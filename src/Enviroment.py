@@ -126,9 +126,12 @@ class Enviroment():
         Args:
             robot_id (int, optional): Id of robot to reset. Defaults to -1.
         """
+        print(f"Entered Reset")
+
         # wait for services
         rospy.wait_for_service('/gazebo/reset_simulation')
         rospy.wait_for_service('/gazebo/set_model_state')
+        print(f"wait_for_service done")
         # set model states or reset world
         if robot_id == -1:
             try:
@@ -180,9 +183,14 @@ class Enviroment():
                      + (self.y_starts[robot_id] - self.y_targets[robot_id])**2)
         # wait for new scan message, so that laser values are updated
         # kinda cheeky but it works on my machine :D
+        print(f"before unpause")
         self.unpause()
+        print(f"before scan")
+        
         rospy.wait_for_message('/tb3_{}/scan'.format(self.robot_indexes[0]), LaserScan)
+        print(f"before pause")
         self.pause()
+        print(f"end of reset")
         return
     
     def step(self,
