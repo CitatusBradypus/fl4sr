@@ -7,7 +7,7 @@ sys.path.append(HOME + '/catkin_ws/src/fl4sr/src')
 import matplotlib.pyplot as plt
 import numpy as np
 import time
-path_data = '/home/pikmanjan/catkin_ws/src/fl4sr/src/data'
+path_data = HOME +'/catkin_ws/src/fl4sr/src/data'
 path_name = 'FederatedLearningDDPG-20211130-235816'
 rewards = np.load(path_data + '/'+ path_name + '/log/rewards-final.npy')
 succeded = np.load(path_data + '/' + path_name + '/log/succeded-final.npy')

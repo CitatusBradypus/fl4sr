@@ -7,6 +7,7 @@ import numpy as np
 import time
 import pickle
 from Enviroment import Enviroment
+from environment_real import RealEnviroment
 from worlds import World
 from DDPG import DDPG
 from buffers import BasicBuffer, PrioritizedExperienceReplayBuffer, Transition
@@ -20,6 +21,7 @@ class IndividualDDPG():
         episode_count: int,
         episode_step_count: int,
         world: World,
+        env = 'Enviroment',
         name=None
         ) -> None:
         """Initialize class and whole experiment.
@@ -49,6 +51,7 @@ class IndividualDDPG():
         self.robot_count = world.robot_count
         # init enviroment and dimensions
         self.world = world
+        self.env = env
         self.init_enviroment()
         # init buffers and agents
         self.BUFFER_TYPE = BasicBuffer
@@ -75,7 +78,11 @@ class IndividualDDPG():
         ) -> None:
         """Initializes environment.
         """
-        self.enviroment = Enviroment(self.world)
+        if self.env == 'Enviroment'
+            self.enviroment = Enviroment(self.world)
+        elif self.env == 'RealEnviroment'
+            self.enviroment = RealEnviroment(self.world)
+        else: raise Exception(f"No Environment named {self.env} is available.")
         self.observation_dimension = self.enviroment.observation_dimension
         self.action_dimension = self.enviroment.action_dimension
         return
@@ -133,6 +140,15 @@ class IndividualDDPG():
         self.robots_succeeded_once = np.zeros((self.episode_step_count, self.robot_count), dtype=bool)        
         self.robots_finished = np.zeros((self.episode_step_count, self.robot_count), dtype=bool)
         self.data = []      
+        return
+    def init_data_real(self
+        ) -> None:
+        """Initializes data containers for evaluation.
+        """
+        self.robots_succeeded_once = np.zeros((self.episode_step_count, self.robot_count), dtype=bool)        
+        self.robots_finished = np.zeros((self.episode_step_count, self.robot_count), dtype=bool)
+        self.data = []
+        self.exp_time = {}
         return
 
     def terminate_enviroment(self):
@@ -246,6 +262,47 @@ class IndividualDDPG():
             self.data_save_test(episode)
         self.enviroment.reset()
         return True, None, None
+
+    def test_real(self
+        ) -> tuple:
+        """Runs evaluation experiment.
+
+        Returns:
+            tuple: bool success (no errors encountered), error episode, error step
+        """
+        # before start
+        self.init_data_real()
+        self.parameters_save()
+        self.print_starting_info(False)
+        # epizode loop
+        for episode in range(self.episode_error, self.episode_count):
+            self.enviroment.reset()
+            self.init_data_real()
+            current_states = self.enviroment.get_current_states()
+            if self.episode_error != episode:
+                self.episode_step_error = 0
+            start_time = time.time()
+            for step in range(0, self.episode_step_count):
+                actions = self.agents_actions(current_states)
+                new_states, rewards, robots_finished, robots_succeeded_once, error, data = self.enviroment.step(actions)
+                if error:
+                    self.episode_error = episode
+                    self.episode_step_error = step
+                    print('ERROR: DDPG: Death robot detected during {}.{}'.format(episode, step))
+                    return False, episode, step
+                if step % self.TIME_LOGGER == 0:
+                    print('{}.{}'.format(episode, step))
+                    print(actions)
+                current_states = new_states
+                self.data_collect_test(step, robots_finished, robots_succeeded_once, data)
+                if np.any(robots_finished):
+                    break
+            self.exp_time[f'{episode}'] = time.time()-start_time
+            print('Robots succeded once: {}'.format(robots_succeeded_once))
+            self.data_save_real(episode)
+        return True, None, None
+
+    
 
     def agents_actions(self,
         states: np.ndarray,
@@ -415,6 +472,8 @@ class IndividualDDPG():
         self.data.append(data)
         return
 
+    
+
     def data_save(self, 
         episode:int=None
         ) -> None:
@@ -444,7 +503,25 @@ class IndividualDDPG():
         with open(self.path_log + '/data-{}.pkl'.format(episode), 'wb') as f:
             pickle.dump(self.data, f)
         return
+        
+        
+    def data_save_real(self, 
+        episode:int=None
+        ) -> None:
+        """Save collected data from evaluating.
 
+        Args:
+            episode (int, optional): ... . Defaults to None.
+        """
+        np.save(self.path_log + '/finished-{}'.format(episode), 
+                self.robots_finished)
+        np.save(self.path_log + '/succeded-{}'.format(episode),
+                self.robots_succeeded_once)
+        np.save(self.path_log + '/exp_time-{}'.format(episode),
+                self.exp_time)
+        with open(self.path_log + '/data-{}.pkl'.format(episode), 'wb') as f:
+            pickle.dump(self.data, f)
+        return
     def parameters_save(self
         ) -> None:
         """Save used parameters to file.

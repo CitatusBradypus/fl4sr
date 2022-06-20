@@ -27,6 +27,7 @@ from worlds import EVAL_WORLD_1
 from worlds import EVAL_WORLD_2
 from worlds import EVAL_WORLD_3
 from worlds import TURTLEBOT_WORLD_5_STARTS
+from worlds import REAL_WORLD
 
 # GLOBAL VARIABLES
 DDPG = None
@@ -144,6 +145,8 @@ def experiment_test(
         EVAL_WORLD = EVAL_WORLD_2
     elif world_number == 3:
         EVAL_WORLD = EVAL_WORLD_3
+    # set env
+    EVAL_ENV = 'Enviroment'
     # RUN
     print('Simulation: Ready to run!')
     if restart:
@@ -151,7 +154,7 @@ def experiment_test(
             DDPG = pickle.load(f)
         DDPG.init_enviroment()
     else:
-        DDPG = IndividualDDPG(EPISODE_COUNT, EPISODE_STEP_COUNT, EVAL_WORLD, 'EVAL-{}'.format(world_number))
+        DDPG = IndividualDDPG(EPISODE_COUNT, EPISODE_STEP_COUNT, EVAL_WORLD, EVAL_ENV,'EVAL-{}'.format(world_number))
         DDPG.agents_load(
             [path_actor],
             [path_critic]
@@ -169,6 +172,56 @@ def experiment_test(
             f.write('RESTART')
     return success
 
+
+def experiment_real(
+        restart: bool,
+        seed: int,
+        world_number: int,
+        path_actor: str,
+        path_critic: str
+    ) -> bool:
+    """Run evaluation experiment with specified values.
+
+    Returns:
+        bool: If program finished correctly.
+    """
+    # SETTINGS
+    EPISODE_COUNT = 5
+    # set seeds
+    if seed is not None:
+        random.seed(seed)
+        np.random.seed(seed)
+    # set world
+    EVAL_WORLD = REAL_WORLD
+    # set env
+    EVAL_ENV = 'RealEnviroment'
+    # RUN
+    print('Simulation: Ready to run!')
+    if restart:
+        with open('experiment.pickle', 'rb') as f:
+            DDPG = pickle.load(f)
+        DDPG.init_enviroment()
+    else:
+        DDPG = IndividualDDPG(EPISODE_COUNT, EPISODE_STEP_COUNT, EVAL_WORLD, EVAL_ENV,'REAL-{}'.format(world_number))
+        DDPG.agents_load(
+            [path_actor],
+            [path_critic]
+        ) 
+    success, _, _ = DDPG.test_real()
+    roscore_launch.shutdown()
+    # RESULTS
+    if not success:
+        DDPG.terminate_enviroment()
+        # save DDPG class
+        with open('experiment.pickle', 'wb') as f:
+            pickle.dump(DDPG, f)
+        # write restart to file
+        with open('main.info', 'w') as f:
+            f.write('RESTART')
+    return success
+
+
+
 if __name__ == '__main__':
     # Experiments are defined by changing parameters in this file 
     # and also by setting arguments while starting running.
@@ -180,9 +233,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='Experiment script for fl4sr project.')
     parser.add_argument(
-        'learn',
-        type=bool,
-        help='If method is supposted to learn or test')
+        '--mode',
+        type=str,
+        default='real',
+        help='If method is supposted to learn, test in simulation or real-robot')
     parser.add_argument(
         '--worldNumber', 
         type=int,
@@ -221,7 +275,10 @@ if __name__ == '__main__':
     assert args.method in METHODS, 'ERROR: Unknown method name.'
     
     # EXPERIMENT
-    if args.learn:
+    if args.mode == 'train':
         experiment_learn(args.method, args.restart, args.seed, args.updateStep, args.updatePeriod)
-    else:
+    elif args.mode == 'real':
+        experiment_real(args.restart, args.seed, args.worldNumber, args.pathActor, args.pathCritic)
+    elif args.mode == 'eval':
         experiment_test(args.restart, args.seed, args.worldNumber, args.pathActor, args.pathCritic)
+    else: raise Exception('Wrong mode!')
