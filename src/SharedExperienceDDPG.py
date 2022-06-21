@@ -17,9 +17,16 @@ class SharedExperienceDDPG(IndividualDDPG):
     """
 
     def __init__(self, 
-        episode_count: int, 
-        episode_step_count: int, 
-        world: World
+        episode_count: int,
+        episode_step_count: int,
+        reward_goal: float,
+        reward_collision: float,
+        reward_progress: float,
+        factor_linear: float,
+        factor_angular: float,
+        world: World,
+        env = 'Enviroment',
+        name=None
         ) -> None:
         """Initialize SEDDPG.
 
@@ -30,7 +37,7 @@ class SharedExperienceDDPG(IndividualDDPG):
         """
         self.NAME = 'SEDDPG'
         self.BUFFER_SIZE = 50000
-        super().__init__(episode_count, episode_step_count, world)
+        super().__init__(episode_count, episode_step_count, reward_goal, reward_collision, reward_progress, factor_linear, factor_angular, world, env)
         return
 
     def init_buffers(self
