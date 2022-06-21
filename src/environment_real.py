@@ -411,8 +411,8 @@ class RealEnviroment():
         """
         assert len(action) == 2, 'Wrong action dimension!'
         twist = Twist()
-        twist.linear.x = action[1] * 0.25
-        twist.angular.z = action[0] # * (np.pi / 2)
+        twist.linear.x = action[1] * 0.1
+        twist.angular.z = action[0] * (0.5)# * (np.pi / 2)
         return twist
 
     def get_distance(self, 
@@ -540,23 +540,26 @@ class RealEnviroment():
             scan_ranges = deque(scan.ranges)
             scan_ranges.rotate(scaled_offset_scan)
             shifted_scan_ranges = list(scan_ranges)
+            #print(f"scan.ranges: {scan.ranges}")
+            #print(f"shifted_scan_ranges: {shifted_scan_ranges}")
 
             
             # each laser in scan
-            for j in range(len(scan_ranges)):
+            for j in range(len(scan.ranges)):
                 lasers[i].append(0)
-                if scan_ranges[j] == float('Inf'):
+                if scan.ranges[j] == float('Inf'):
                     lasers[i][j] = 3.5
-                elif np.isnan(scan_ranges[j]):
+                elif np.isnan(scan.ranges[j]):
                     lasers[i][j] = 0
                 else:
-                    lasers[i][j] = scan_ranges[j]
+                    lasers[i][j] = scan.ranges[j]
             if self.COLLISION_RANGE > min(lasers[i]) > 0:
                 collisions[i] = True
             lasers = [l for k, l in enumerate(lasers[i]) if k % 32==0]
-        print(f"length of lasers: {len(lasers)}")
+        print(f"length of lasers: {len(lasers)}, lasers: {lasers}")
         lasers = np.array(lasers).reshape(self.robot_count, 24)
         collisions = np.array(collisions)
+        print(f"collisions: {collisions}")
         return lasers, collisions
 
     def get_robot_lasers_collisions(self,

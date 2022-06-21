@@ -148,6 +148,6 @@ REAL_WORLD = World(
     robot_alives=[True],
     x_starts=[0.0],
     y_starts=[0.0],
-    target_positions=[[3.0, 3.0]]
+    target_positions=[[2.5, 2.5]]
 )
 
