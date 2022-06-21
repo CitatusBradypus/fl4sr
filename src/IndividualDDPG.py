@@ -20,6 +20,11 @@ class IndividualDDPG():
     def __init__(self,
         episode_count: int,
         episode_step_count: int,
+        reward_goal: float,
+        reward_collision: float,
+        reward_progress: float,
+        factor_linear: float,
+        factor_angular: float,
         world: World,
         env = 'Enviroment',
         name=None
@@ -49,6 +54,12 @@ class IndividualDDPG():
         self.episode_step_error = 0
         # init some world values
         self.robot_count = world.robot_count
+        # Parameters for experiment
+        self.reward_goal= reward_goal
+        self.reward_collision= reward_collision
+        self.reward_progress= reward_progress
+        self.factor_linear= factor_linear
+        self.factor_angular= factor_angular
         # init enviroment and dimensions
         self.world = world
         self.env = env
@@ -79,7 +90,11 @@ class IndividualDDPG():
         """Initializes environment.
         """
         if self.env == 'Enviroment':
-            self.enviroment = Enviroment(self.world)
+            self.enviroment = Enviroment(self.world, self.reward_goal,
+        self.reward_collision,
+        self.reward_progress,
+        self.factor_linear,
+        self.factor_angular)
         elif self.env == 'RealEnviroment':
             self.enviroment = RealEnviroment(self.world)
         else: raise Exception(f"No Environment named {self.env} is available.")
@@ -180,7 +195,7 @@ class IndividualDDPG():
                 self.episode_step_error = 0
             for step in range(self.episode_step_error, self.episode_step_count):
                 # get actions
-                print("got action")
+                #print("got action")
                 actions = self.agents_actions(current_states)
                 actions = self.actions_add_random(actions, episode)
                 # perform step

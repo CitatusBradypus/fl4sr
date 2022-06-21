@@ -13,35 +13,47 @@ sys.path.append(HOME + '/catkin_ws/src/fl4sr/src')
 # Commands are saved to command list, which are then then run.
 # This is done so the experiment can be restarted after encoutering error.
 COMMAND_LIST = [
-    #['rosrun', 'fl4sr', 'experiment.py', 'learn=True', 'IDDPG'],
-    #['rosrun', 'fl4sr', 'experiment.py', 'learn=True', 'SEDDPG'],
-    #['rosrun', 'fl4sr', 'experiment.py', 'learn=True', 'SNDDPG'],
-    ['rosrun', 'fl4sr', 'experiment.py', 'learn=True', 'FLDDPG', '--updatePeriod=2'],
+    ['rosrun', 'fl4sr', 'experiment.py', f'--mode={"learn"}', '--reward_goal=100.0', '--reward_collision=-10.0','--reward_progress=40.0', '--factor_linear=0.1','--factor_angular=1.0', 'IDDPG'],
+    ['rosrun', 'fl4sr', 'experiment.py', f'--mode={"learn"}',  '--reward_goal=100.0', '--reward_collision=-10.0','--reward_progress=40.0', '--factor_linear=0.1','--factor_angular=1.0', 'SEDDPG'],
+    ['rosrun', 'fl4sr', 'experiment.py', f'--mode={"learn"}',  '--reward_goal=100.0', '--reward_collision=-10.0','--reward_progress=40.0', '--factor_linear=0.1','--factor_angular=1.0', 'SNDDPG'],
+    ['rosrun', 'fl4sr', 'experiment.py', f'--mode={"learn"}',  '--updatePeriod=2', '--reward_goal=100.0', '--reward_collision=-10.0','--reward_progress=40.0', '--factor_linear=0.1','--factor_angular=1.0', 'FLDDPG'],
+    ['rosrun', 'fl4sr', 'experiment.py', f'--mode={"learn"}', '--reward_goal=50.0', '--reward_collision=-100.0','--reward_progress=30.0', '--factor_linear=0.1','--factor_angular=1.5', 'IDDPG'],
+    ['rosrun', 'fl4sr', 'experiment.py', f'--mode={"learn"}',  '--reward_goal=50.0', '--reward_collision=-100.0','--reward_progress=30.0', '--factor_linear=0.1','--factor_angular=1.5', 'SEDDPG'],
+    ['rosrun', 'fl4sr', 'experiment.py', f'--mode={"learn"}',  '--reward_goal=50.0', '--reward_collision=-100.0','--reward_progress=30.0', '--factor_linear=0.1','--factor_angular=1.5', 'SNDDPG'],
+    ['rosrun', 'fl4sr', 'experiment.py', f'--mode={"learn"}',  '--updatePeriod=2', '--reward_goal=50.0', '--reward_collision=-100.0','--reward_progress=30.0', '--factor_linear=0.1','--factor_angular=1.5', 'FLDDPG'],
+    ['rosrun', 'fl4sr', 'experiment.py', f'--mode={"learn"}', '--reward_goal=100.0', '--reward_collision=-10.0','--reward_progress=40.0', '--factor_linear=0.1','--factor_angular=1.0', 'IDDPG'],
+    ['rosrun', 'fl4sr', 'experiment.py', f'--mode={"learn"}',  '--reward_goal=100.0', '--reward_collision=-10.0','--reward_progress=40.0', '--factor_linear=0.1','--factor_angular=1.0', 'SEDDPG'],
+    ['rosrun', 'fl4sr', 'experiment.py', f'--mode={"learn"}',  '--reward_goal=100.0', '--reward_collision=-10.0','--reward_progress=40.0', '--factor_linear=0.1','--factor_angular=1.0', 'SNDDPG'],
+    ['rosrun', 'fl4sr', 'experiment.py', f'--mode={"learn"}',  '--updatePeriod=2', '--reward_goal=100.0', '--reward_collision=-10.0','--reward_progress=40.0', '--factor_linear=0.1','--factor_angular=1.0', 'FLDDPG'],
+    ['rosrun', 'fl4sr', 'experiment.py', f'--mode={"learn"}', '--reward_goal=50.0', '--reward_collision=-100.0','--reward_progress=30.0', '--factor_linear=0.1','--factor_angular=1.5', 'IDDPG'],
+    ['rosrun', 'fl4sr', 'experiment.py', f'--mode={"learn"}',  '--reward_goal=50.0', '--reward_collision=-100.0','--reward_progress=30.0', '--factor_linear=0.1','--factor_angular=1.5', 'SEDDPG'],
+    ['rosrun', 'fl4sr', 'experiment.py', f'--mode={"learn"}',  '--reward_goal=50.0', '--reward_collision=-100.0','--reward_progress=30.0', '--factor_linear=0.1','--factor_angular=1.5', 'SNDDPG'],
+    ['rosrun', 'fl4sr', 'experiment.py', f'--mode={"learn"}',  '--updatePeriod=2', '--reward_goal=50.0', '--reward_collision=-100.0','--reward_progress=30.0', '--factor_linear=0.1','--factor_angular=1.5', 'FLDDPG'],
     #['rosrun', 'fl4sr', 'experiment.py', 'learn=True', 'PWDDPG', '--updatePeriod=2'],
     #['rosrun', 'fl4sr', 'experiment.py', 'learn=True', 'RWDDPG', '--updatePeriod=2'],
     #['rosrun', 'fl4sr', 'experiment.py', 'learn=True', 'MADDPG', '--updatePeriod=2'],
     #['rosrun', 'fl4sr', 'experiment.py', 'learn=True', 'AllDDPG', '--updatePeriod=2'],
 ]
 
-COMMAND_LIST = []
-#for eid in range(1, 8+1):
-#    for nid in range(0, 4+1):
-#        for wid in range(0, 4):
-#            COMMAND_LIST += [['rosrun', 'fl4sr', 'experiment.py', '','IDDPG', '--worldNumber={}'.format(wid), 
-#            '--pathActor=/home/users/jpikman/catkin_ws/src/fl4sr/src/data/RWDDPG-b-0.5-{}/weights/actor-final-{}.pkl'.format(eid, nid),
-#            '--pathCritic=/home/users/jpikman/catkin_ws/src/fl4sr/src/data/RWDDPG-b-0.5-{}/weights/critic-final-{}.pkl'.format(eid, nid)]]
-#for eid in range(1, 8+1):
-#    for nid in range(0, 4+1):
-#        for wid in range(0, 4):
-#            COMMAND_LIST += [['rosrun', 'fl4sr', 'experiment.py', '','IDDPG', '--worldNumber={}'.format(wid),
-#            '--pathActor=/home/users/jpikman/catkin_ws/src/fl4sr/src/data/MADDPG-h-b-0.5-{}/weights/actor-final-{}.pkl'.format(eid, nid),
-#            '--pathCritic=/home/users/jpikman/catkin_ws/src/fl4sr/src/data/MADDPG-h-b-0.5-{}/weights/critic-final-{}.pkl'.format(eid, nid)]]
-for eid in range(4, 8+1):
-    for nid in range(0, 4+1):
-        for wid in range(0, 4):
-            COMMAND_LIST += [['rosrun', 'fl4sr', 'experiment.py', '','IDDPG', '--worldNumber={}'.format(wid),
-            '--pathActor=/home/users/jpikman/catkin_ws/src/fl4sr/src/data/FLDDPG-ms-{}/weights/actor-final-{}.pkl'.format(eid, nid),
-            '--pathCritic=/home/users/jpikman/catkin_ws/src/fl4sr/src/data/FLDDPG-ms-{}/weights/critic-final-{}.pkl'.format(eid, nid)]]
+# COMMAND_LIST = []
+# #for eid in range(1, 8+1):
+# #    for nid in range(0, 4+1):
+# #        for wid in range(0, 4):
+# #            COMMAND_LIST += [['rosrun', 'fl4sr', 'experiment.py', '','IDDPG', '--worldNumber={}'.format(wid), 
+# #            '--pathActor=/home/users/jpikman/catkin_ws/src/fl4sr/src/data/RWDDPG-b-0.5-{}/weights/actor-final-{}.pkl'.format(eid, nid),
+# #            '--pathCritic=/home/users/jpikman/catkin_ws/src/fl4sr/src/data/RWDDPG-b-0.5-{}/weights/critic-final-{}.pkl'.format(eid, nid)]]
+# #for eid in range(1, 8+1):
+# #    for nid in range(0, 4+1):
+# #        for wid in range(0, 4):
+# #            COMMAND_LIST += [['rosrun', 'fl4sr', 'experiment.py', '','IDDPG', '--worldNumber={}'.format(wid),
+# #            '--pathActor=/home/users/jpikman/catkin_ws/src/fl4sr/src/data/MADDPG-h-b-0.5-{}/weights/actor-final-{}.pkl'.format(eid, nid),
+# #            '--pathCritic=/home/users/jpikman/catkin_ws/src/fl4sr/src/data/MADDPG-h-b-0.5-{}/weights/critic-final-{}.pkl'.format(eid, nid)]]
+# for eid in range(4, 8+1):
+#     for nid in range(0, 4+1):
+#         for wid in range(0, 4):
+#             COMMAND_LIST += [['rosrun', 'fl4sr', 'experiment.py', '','IDDPG', '--worldNumber={}'.format(wid),
+#             '--pathActor=/home/users/jpikman/catkin_ws/src/fl4sr/src/data/FLDDPG-ms-{}/weights/actor-final-{}.pkl'.format(eid, nid),
+#             '--pathCritic=/home/users/jpikman/catkin_ws/src/fl4sr/src/data/FLDDPG-ms-{}/weights/critic-final-{}.pkl'.format(eid, nid)]]
 
 #COMMAND_LIST = 1 * COMMAND_LIST
 #SEEDS = [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28]

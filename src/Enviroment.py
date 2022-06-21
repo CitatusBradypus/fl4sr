@@ -28,7 +28,12 @@ class Enviroment():
     """
 
     def __init__(self, 
-        world: World
+        world: World,
+        reward_goal: float,
+        reward_collision: float,
+        reward_progress: float,
+        factor_linear: float,
+        factor_angular: float
         ) -> None:
         """Initializes eviroment.
 
@@ -38,9 +43,11 @@ class Enviroment():
         # params        
         self.COLLISION_RANGE = 0.25
         self.GOAL_RANGE = 0.5
-        self.REWARD_GOAL = 100.0
-        self.REWARD_COLLISION = -10.0
-        self.PROGRESS_REWARD_FACTOR = 40.0
+        self.REWARD_GOAL = reward_goal
+        self.REWARD_COLLISION = reward_collision
+        self.PROGRESS_REWARD_FACTOR = reward_progress
+        self.FACTOR_LINEAR = factor_linear
+        self.FACTOR_ANGULAR = factor_angular
         # simulation services
         # rospy.wait_for_service('/gazebo/reset_simulation')
         # self.reset_simulation = rospy.ServiceProxy('/gazebo/reset_simulation', Empty)
@@ -59,12 +66,15 @@ class Enviroment():
         self.x_starts_all = world.x_starts
         self.y_starts_all = world.y_starts
 
-        self.x_starts = [x[0] for x in world.x_starts]
-        self.y_starts = [y[0] for y in world.y_starts]
+        self.x_starts = [x[0] if isinstance(x, float) is not True else x for x in world.x_starts]
+        self.y_starts = [y[0] if isinstance(y, float) is not True else y for y in world.y_starts]
 
         self.targets = world.target_positions
         self.x_targets = np.array(self.targets).T[0]
         self.y_targets = np.array(self.targets).T[1]
+        
+        # self.start_indexes = [0 for _ in range(len(self.robot_count))]
+        # self.target_indexes = [0 for _ in range(len(self.robot_count))]
         # create restart enviroment messages
         self.reset_tb3_messages = \
             [self.create_model_state('tb3_{}'.format(rid), 
@@ -82,7 +92,7 @@ class Enviroment():
         # basic settings
         self.node = rospy.init_node('turtlebot_env', anonymous=True)
         self.rate = rospy.Rate(100)
-        self.laser_count = 24
+        self.laser_count = 360
         
         self.observation_dimension = self.laser_count + 4
         self.action_dimension = 2
@@ -126,22 +136,31 @@ class Enviroment():
         Args:
             robot_id (int, optional): Id of robot to reset. Defaults to -1.
         """
-        print(f"Entered Reset")
 
         # wait for services
         rospy.wait_for_service('/gazebo/reset_simulation')
         rospy.wait_for_service('/gazebo/set_model_state')
-        print(f"wait_for_service done")
         # set model states or reset world
+        
+        
         if robot_id == -1:
             try:
                 state_setter = rospy.ServiceProxy('/gazebo/set_model_state', SetModelState)
                 for id, rid in enumerate(self.robot_indexes):
                     # pick new starting position and direction and set them
+                    # TODO several starting and target points. 
+                    # if self.start_indexes[id] < len(self.start_indexes[id]):
+                    #     self.start_indexes[id] = self.start_indexes[id] + 1
+                    # else: self.start_indexes[id] = 0
+                    # if self.target_indexes[id] < len(self.target_indexes[id]):
+                    #     self.target_indexes[id] = self.target_indexes[id] + 1
+                    # else: self.target_indexes[id] = 0    
+                        
                     start_index = np.random.randint(len(self.x_starts_all[id]))
+                    #target_index = np.random.randint(len(self.target_positions[id]))
                     self.x_starts[id] = self.x_starts_all[id][start_index]
                     self.y_starts[id] = self.y_starts_all[id][start_index]
-                    direction = -0.2 #+ (np.random.rand() * np.pi / 2) - (np.pi / 4)
+                    direction = 0.0 #+ (np.random.rand() * np.pi / 2) - (np.pi / 4)
                     # generate new message
                     self.reset_tb3_messages[id] = \
                         self.create_model_state('tb3_{}'.format(rid), 
@@ -183,14 +202,14 @@ class Enviroment():
                      + (self.y_starts[robot_id] - self.y_targets[robot_id])**2)
         # wait for new scan message, so that laser values are updated
         # kinda cheeky but it works on my machine :D
-        print(f"before unpause")
+        #print(f"before unpause")
         self.unpause()
-        print(f"before scan")
+        #print(f"before scan")
         
         rospy.wait_for_message('/tb3_{}/scan'.format(self.robot_indexes[0]), LaserScan)
-        print(f"before pause")
+        #print(f"before pause")
         self.pause()
-        print(f"end of reset")
+        #print(f"end of reset")
         return
     
     def step(self,
@@ -263,7 +282,7 @@ class Enviroment():
         s_actions_angular = actions_angular_z.reshape((self.robot_count, 1))
         s_robot_target_distances = robot_target_distances.reshape((self.robot_count, 1))
         s_robot_target_angle_difference = robot_target_angle_difference.reshape((self.robot_count, 1))
-        assert robot_lasers.shape == (self.robot_count, 24), 'Wrong lasers dimension!'
+        assert robot_lasers.shape == (self.robot_count, 360), 'Wrong lasers dimension!'
         assert s_actions_linear.shape == (self.robot_count, 1), 'Wrong action linear dimension!'
         assert s_actions_angular.shape == (self.robot_count, 1), 'Wrong action angular dimension!'
         assert s_robot_target_distances.shape == (self.robot_count, 1), 'Wrong distance to target!'
@@ -371,8 +390,8 @@ class Enviroment():
         """
         assert len(action) == 2, 'Wrong action dimension!'
         twist = Twist()
-        twist.linear.x = action[1] * 0.25
-        twist.angular.z = action[0] # * (np.pi / 2)
+        twist.linear.x = action[1] * self.FACTOR_LINEAR
+        twist.angular.z = action[0] * self.FACTOR_ANGULAR
         return twist
 
     def get_distance(self, 
@@ -504,7 +523,7 @@ class Enviroment():
         s_actions_angular = np.zeros((self.robot_count, 1))
         s_robot_target_distances = robot_target_distances.reshape((self.robot_count, 1))
         s_robot_target_angle_difference = robot_target_angle_difference.reshape((self.robot_count, 1))
-        assert robot_lasers.shape == (self.robot_count, 24), 'Wrong lasers dimension!'
+        assert robot_lasers.shape == (self.robot_count, 360), 'Wrong lasers dimension!'
         assert s_actions_linear.shape == (self.robot_count, 1), 'Wrong action linear dimension!'
         assert s_actions_angular.shape == (self.robot_count, 1), 'Wrong action angular dimension!'
         assert s_robot_target_distances.shape == (self.robot_count, 1), 'Wrong distance to target!'

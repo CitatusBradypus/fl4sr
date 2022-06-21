@@ -41,18 +41,18 @@ TURTLEBOT_WORLD_6 = World(
                   True, 
                   True, 
                   True],
-    x_starts=[10.0, 
-             1.7, 
-             -6.0, 
-             12.0, 
-             0.0, 
-             -12.0],
-    y_starts=[9.0, 
-             9.0, 
-             9.0, 
-             -9.0, 
-             -9.0, 
-             -9.0],
+    x_starts=[[10.0], 
+             [1.7], 
+             [-6.0], 
+             [12.0], 
+             [0.0], 
+             [-12.0]],
+    y_starts=[[9.0], 
+             [9.0], 
+             [9.0], 
+             [-9.0], 
+             [-9.0], 
+             [-9.0]],
     target_positions=[[6.0, 5.0], 
                       [-2.0, 5.0], 
                       [-10.0, 5.0], 
@@ -146,8 +146,15 @@ TURTLEBOT_WORLD_5_STARTS = World(
 # TODO needs to be modified after setting up WhyCODE
 REAL_WORLD = World(
     robot_alives=[True],
-    x_starts=[0.0],
-    y_starts=[0.0],
-    target_positions=[[2.5, 2.5]]
+    x_starts=[[0.0]],
+    y_starts=[[0.0]],
+    target_positions=[[2.5, -2.5]]
 )
+REAL_SIM_WORLD = World(
+    robot_alives=[True],
+    x_starts=[[0.5]],
+    y_starts=[[0.5]],
+    target_positions=[[3.6, 2.8]]
+)
+
 

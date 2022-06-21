@@ -40,6 +40,7 @@ class RealEnviroment():
         """
         # params        
         self.COLLISION_RANGE = 0.25
+        self.MINIMUM_SCAN_RANGE = 0.19
         self.GOAL_RANGE = 0.5
         self.REWARD_GOAL = 100.0
         self.REWARD_COLLISION = -10.0
@@ -65,8 +66,9 @@ class RealEnviroment():
         self.x_starts_all = world.x_starts
         self.y_starts_all = world.y_starts
 
-        self.x_starts = [x for x in world.x_starts]
-        self.y_starts = [y for y in world.y_starts]
+
+        self.x_starts = [x[0] if isinstance(x, float) is not True else x for x in world.x_starts]
+        self.y_starts = [y[0] if isinstance(y, float) is not True else y for y in world.y_starts]
 
         self.targets = world.target_positions
         self.x_targets = np.array(self.targets).T[0]
@@ -96,21 +98,21 @@ class RealEnviroment():
 
         # publishers for turtlebots
         self.publisher_turtlebots = \
-            [rospy.Publisher('/cmd_vel_mux/safety_controller'.format(i), 
+            [rospy.Publisher('/11/cmd_vel_mux/safety_controller'.format(i), 
                              Twist, 
                              queue_size=1) 
             for i in self.robot_indexes]
 
         # positional info getter # TODO let's change this with whycodes.
         self.position_info_getter = InfoGetter()
-        self._position_subscriber = rospy.Subscriber("/odom", 
+        self._position_subscriber = rospy.Subscriber("/11/odom", 
                                                      Odometry, 
                                                      self.position_info_getter)
 
         # lasers info getters, subscribers unused
         self.laser_info_getter = [InfoGetter() for i in range(self.robot_count)]
         self._laser_subscriber = \
-            [rospy.Subscriber('/scan'.format(rid), 
+            [rospy.Subscriber('/11/scan'.format(rid), 
                               LaserScan, 
                               self.laser_info_getter[id]) 
             for id, rid in enumerate(self.robot_indexes)]
@@ -204,15 +206,15 @@ class RealEnviroment():
     
     def step(self,
         actions: np.ndarray,
-        time_step: float=1.0
+        time_step: float=0.3
         ) -> tuple:
         """Perform one step of simulations using given actions and lasting for 
         set time.
 
         Args:
-            actions (np.ndarray): Action of each robot.
-            time_step (float, optional): Duration of taken step. Defaults to 0.1.
-
+            actions (np.ndarray): lasers = [[l for k, l in enumerate(lasers[i]) if k % 32==0]]
+            if self.COLLISION_RANGE > min(lasers[i]) > 0:
+                collisions[i] = True
         Returns:
             tuple: states (np.ndarray), 
                    rewards (np.ndarray), 
@@ -225,14 +227,14 @@ class RealEnviroment():
         assert len(actions) == self.robot_count, 'Wrong actions dimension!'
         # generate twists, also get separate values of actions
         twists = [self.action_to_twist(action) for action in actions]
-        actions_linear_x = actions[0][0]
-        actions_angular_z = actions[0][1]
+        actions_linear_x = actions[0][1]
+        actions_angular_z = actions[0][0]
         print(f"actions: {actions}")
         #one_twist =Twist()
         #one_twist.linear.x = actions_linear_x
         #one_twist.angular.z = actions_angular_z
         for i in range(self.robot_count):
-            self.publisher_turtlebots[i].publish(twists[i])
+            self.publisher_turtlebots[i].publish(Twist())
         # publish twists
         # self.pause()
         print("timing started")
@@ -411,9 +413,9 @@ class RealEnviroment():
         """
         assert len(action) == 2, 'Wrong action dimension!'
         twist = Twist()
-        twist.linear.x = action[1] * 0.1
-        twist.angular.z = action[0] * (0.5)# * (np.pi / 2)
-        return twist
+        twist.linear.x = action[1] * 0.15
+        twist.angular.z = action[0] * 2.0# * (np.pi / 2)
+        return twist 
 
     def get_distance(self, 
         x_0: np.ndarray,
@@ -553,9 +555,11 @@ class RealEnviroment():
                     lasers[i][j] = 0
                 else:
                     lasers[i][j] = scan.ranges[j]
-            if self.COLLISION_RANGE > min(lasers[i]) > 0:
+            
+            lasers = [[l for k, l in enumerate(lasers[i]) if k % 32==0]]
+            if self.COLLISION_RANGE > min(lasers[i]) > self.MINIMUM_SCAN_RANGE:
                 collisions[i] = True
-            lasers = [l for k, l in enumerate(lasers[i]) if k % 32==0]
+            
         print(f"length of lasers: {len(lasers)}, lasers: {lasers}")
         lasers = np.array(lasers).reshape(self.robot_count, 24)
         collisions = np.array(collisions)

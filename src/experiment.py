@@ -28,6 +28,7 @@ from worlds import EVAL_WORLD_2
 from worlds import EVAL_WORLD_3
 from worlds import TURTLEBOT_WORLD_5_STARTS
 from worlds import REAL_WORLD
+from worlds import REAL_SIM_WORLD
 
 # GLOBAL VARIABLES
 DDPG = None
@@ -43,7 +44,7 @@ METHODS = {'IDDPG': IndividualDDPG,
 EPISODE_COUNT = 125
 EPISODE_STEP_COUNT = 1024
 
-LEARN_WORLD = TURTLEBOT_WORLD_5
+LEARN_WORLD = TURTLEBOT_WORLD_6
 
 EVAL_WORLD = EVAL_WORLD_0
 
@@ -53,6 +54,11 @@ def experiment_learn(
         seed: int,
         update_step: int,
         update_period: int,
+        reward_goal: float,
+        reward_collision: float,
+        reward_progress: float,
+        factor_linear: float,
+        factor_angular: float
     ) -> bool:
     """Run learning experiment with specified values.
 
@@ -69,7 +75,7 @@ def experiment_learn(
     print('Simulation: Ready to start!')
     uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
     roslaunch.configure_logging(uuid)
-    world_launch = roslaunch.parent.ROSLaunchParent(uuid, [HOME + '/catkin_ws/src/fl4sr/launch/frl_6.launch'])
+    world_launch = roslaunch.parent.ROSLaunchParent(uuid, [HOME + '/catkin_ws/src/fl4sr/launch/frl_6_real.launch'])
     world_launch.start()
     time.sleep(5)
     # SETTINGS
@@ -77,6 +83,8 @@ def experiment_learn(
     if seed is not None:
         random.seed(seed)
         np.random.seed(seed)
+
+    LEARN_ENV = 'Enviroment'
     # RUN
     print('Simulation: Ready to run!')
     if restart:
@@ -84,7 +92,8 @@ def experiment_learn(
             DDPG = pickle.load(f)
         DDPG.init_enviroment()
     else:
-        DDPG = METHODS[method](EPISODE_COUNT, EPISODE_STEP_COUNT, LEARN_WORLD)
+        DDPG = METHODS[method](EPISODE_COUNT, EPISODE_STEP_COUNT, reward_goal, reward_collision, reward_progress, \
+                               factor_linear, factor_angular, LEARN_WORLD, LEARN_ENV)
         if update_step is None and update_period is not None:
             DDPG.EPISODE_UPDATE = True
             DDPG.TIME_UPDATE = update_period
@@ -127,7 +136,7 @@ def experiment_test(
     print('Simulation: Ready to start!')
     uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
     roslaunch.configure_logging(uuid)
-    world_launch = roslaunch.parent.ROSLaunchParent(uuid, [HOME + '/catkin_ws/src/fl4sr/launch/fl4sr_eval.launch'])
+    world_launch = roslaunch.parent.ROSLaunchParent(uuid, [HOME + '/catkin_ws/src/fl4sr/launch/real_world.launch'])
     world_launch.start()
     time.sleep(5)
     # SETTINGS
@@ -145,6 +154,8 @@ def experiment_test(
         EVAL_WORLD = EVAL_WORLD_2
     elif world_number == 3:
         EVAL_WORLD = EVAL_WORLD_3
+    elif world_number == 99:
+        EVAL_WORLD = REAL_SIM_WORLD
     # set env
     EVAL_ENV = 'Enviroment'
     # RUN
@@ -249,10 +260,7 @@ if __name__ == '__main__':
         '--pathCritic', 
         type=str,
         help='Path to critic.')
-    parser.add_argument(
-        'method', 
-        type=str,
-        help='Name of used method.')
+    
     parser.add_argument(
         '--restart', 
         type=bool,
@@ -269,6 +277,30 @@ if __name__ == '__main__':
         '--updatePeriod',
         type=int,
         help='Period of federated update.')
+    parser.add_argument(
+        '--reward_goal',
+        type=float,
+        help='Reward for reaching a goal.')
+    parser.add_argument(
+        '--reward_collision',
+        type=float,
+        help='Reward for collision.')
+    parser.add_argument(
+        '--reward_progress',
+        type=float,
+        help='Reward for the progress.')
+    parser.add_argument(
+        '--factor_linear',
+        type=float,
+        help='Scaling factor for the linear velocity.')
+    parser.add_argument(
+        '--factor_angular',
+        type=float,
+        help='Scaling factor for the angular velocity.')
+    parser.add_argument(
+        'method', 
+        type=str,
+        help='Name of used method.')
     args = parser.parse_args()
     
     # ARGUMENTS
@@ -277,7 +309,8 @@ if __name__ == '__main__':
     # EXPERIMENT
     if args.mode == 'learn':
         print(f"It is in learning mode.")
-        experiment_learn(args.method, args.restart, args.seed, args.updateStep, args.updatePeriod)
+        experiment_learn(args.method, args.restart, args.seed, args.updateStep, args.updatePeriod, args.reward_goal, args.reward_collision,\
+                         args.reward_progress, args.factor_linear, args.factor_angular)
     elif args.mode == 'real':
         print(f"It is in real mode")
         experiment_real(args.restart, args.seed, args.worldNumber, args.pathActor, args.pathCritic)
