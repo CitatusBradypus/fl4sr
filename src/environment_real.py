@@ -7,6 +7,8 @@ from math import sqrt
 import time
 import numpy as np
 import rospy
+from collections import deque
+import math
 
 from worlds import World
 from InfoGetter import InfoGetter
@@ -94,7 +96,7 @@ class RealEnviroment():
 
         # publishers for turtlebots
         self.publisher_turtlebots = \
-            [rospy.Publisher('/mobile_base/commands/velocity'.format(i), 
+            [rospy.Publisher('/cmd_vel_mux/safety_controller'.format(i), 
                              Twist, 
                              queue_size=1) 
             for i in self.robot_indexes]
@@ -202,7 +204,7 @@ class RealEnviroment():
     
     def step(self,
         actions: np.ndarray,
-        time_step: float=0.1
+        time_step: float=1.0
         ) -> tuple:
         """Perform one step of simulations using given actions and lasting for 
         set time.
@@ -226,11 +228,11 @@ class RealEnviroment():
         actions_linear_x = actions[0][0]
         actions_angular_z = actions[0][1]
         print(f"actions: {actions}")
-        one_twist =Twist()
-        one_twist.linear.x = actions_linear_x
-        one_twist.angular.z = actions_angular_z
+        #one_twist =Twist()
+        #one_twist.linear.x = actions_linear_x
+        #one_twist.angular.z = actions_angular_z
         for i in range(self.robot_count):
-            self.publisher_turtlebots[i].publish(one_twist)
+            self.publisher_turtlebots[i].publish(twists[i])
         # publish twists
         # self.pause()
         print("timing started")
@@ -524,21 +526,31 @@ class RealEnviroment():
             tuple: lasers, collisions
         """
         # laser: 760->24
+        # offset: pi
+        total_sample_num = 760
+        sampled_sample_num = 24
+        offset_scan = math.pi
+        scaled_offset_scan = int(total_sample_num * offset_scan / (2*math.pi))
         lasers = []
         collisions = [False for i in range(self.robot_count)]
         # each robot
         for i in range(self.robot_count):
             lasers.append([])
             scan = self.laser_info_getter[i].get_msg()
+            scan_ranges = deque(scan.ranges)
+            scan_ranges.rotate(scaled_offset_scan)
+            shifted_scan_ranges = list(scan_ranges)
+
+            
             # each laser in scan
-            for j in range(len(scan.ranges)):
+            for j in range(len(scan_ranges)):
                 lasers[i].append(0)
-                if scan.ranges[j] == float('Inf'):
+                if scan_ranges[j] == float('Inf'):
                     lasers[i][j] = 3.5
-                elif np.isnan(scan.ranges[j]):
+                elif np.isnan(scan_ranges[j]):
                     lasers[i][j] = 0
                 else:
-                    lasers[i][j] = scan.ranges[j]
+                    lasers[i][j] = scan_ranges[j]
             if self.COLLISION_RANGE > min(lasers[i]) > 0:
                 collisions[i] = True
             lasers = [l for k, l in enumerate(lasers[i]) if k % 32==0]

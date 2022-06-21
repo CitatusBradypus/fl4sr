@@ -208,7 +208,7 @@ def experiment_real(
             [path_critic]
         ) 
     success, _, _ = DDPG.test_real()
-    roscore_launch.shutdown()
+    #roscore_launch.shutdown()
     # RESULTS
     if not success:
         DDPG.terminate_enviroment()

@@ -290,6 +290,7 @@ class IndividualDDPG():
                 print(f"step started: {step}")
                 actions = self.agents_actions(current_states)
                 new_states, rewards, robots_finished, robots_succeeded_once, error, data = self.enviroment.step(actions)
+                print(f"step: {step}, states: {current_states}, actions: {actions}, rewards: {rewards}, new_states: {new_states}, robot_finished: {robots_finished}")
                 if error:
                     self.episode_error = episode
                     self.episode_step_error = step
@@ -297,7 +298,6 @@ class IndividualDDPG():
                     return False, episode, step
                 if step % self.TIME_LOGGER == 0:
                     print('{}.{}'.format(episode, step))
-                    print(actions)
                 current_states = new_states
                 self.data_collect_test(step, robots_finished, robots_succeeded_once, data)
                 if np.any(robots_finished):
