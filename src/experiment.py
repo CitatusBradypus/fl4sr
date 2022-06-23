@@ -29,6 +29,7 @@ from worlds import EVAL_WORLD_3
 from worlds import TURTLEBOT_WORLD_5_STARTS
 from worlds import REAL_WORLD
 from worlds import REAL_SIM_WORLD
+from worlds import REAL_WORLD_8
 
 # GLOBAL VARIABLES
 DDPG = None
@@ -44,7 +45,7 @@ METHODS = {'IDDPG': IndividualDDPG,
 EPISODE_COUNT = 125
 EPISODE_STEP_COUNT = 1024
 
-LEARN_WORLD = TURTLEBOT_WORLD_6
+LEARN_WORLD = REAL_WORLD_8
 
 EVAL_WORLD = EVAL_WORLD_0
 
@@ -75,7 +76,7 @@ def experiment_learn(
     print('Simulation: Ready to start!')
     uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
     roslaunch.configure_logging(uuid)
-    world_launch = roslaunch.parent.ROSLaunchParent(uuid, [HOME + '/catkin_ws/src/fl4sr/launch/frl_6_real.launch'])
+    world_launch = roslaunch.parent.ROSLaunchParent(uuid, [HOME + '/catkin_ws/src/fl4sr/launch/fl4sr_real_8.launch'])
     world_launch.start()
     time.sleep(5)
     # SETTINGS

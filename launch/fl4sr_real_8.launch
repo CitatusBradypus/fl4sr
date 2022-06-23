@@ -13,45 +13,45 @@
   <arg name="x_pos0" default="0.6"/>
   <arg name="y_pos0" default="5.5"/>
   <arg name="z_pos0" default="0.0"/>
-  <arg name="yaw_0"  default="0.0"/>
+  <arg name="yaw_0"  default="0.79"/>
 
   <arg name="x_pos1" default="0.6"/>
   <arg name="y_pos1" default="0.5"/>
   <arg name="z_pos1" default="0.0"/>
-  <arg name="yaw_1"  default="0.0"/>
+  <arg name="yaw_1"  default="0.79"/>
 
   <arg name="x_pos2" default="0.6"/>
   <arg name="y_pos2" default="-4.5"/>
   <arg name="z_pos2" default="0.0"/>
-  <arg name="yaw_2"  default="0.0"/>
+  <arg name="yaw_2"  default="0.79"/>
 
   <arg name="x_pos3" default="0.6"/>
   <arg name="y_pos3" default="-9.5"/>
   <arg name="z_pos3" default="0.0"/>
-  <arg name="yaw_3"  default="0.0"/>
+  <arg name="yaw_3"  default="0.79"/>
 
   <arg name="x_pos4" default="-4.5"/>
   <arg name="y_pos4" default="7.8"/>
   <arg name="z_pos4" default="0.0"/>
-  <arg name="yaw_4"  default="0.0"/>
+  <arg name="yaw_4"  default="-0.79"/>
 
   <arg name="x_pos5" default="-4.5"/>
   <arg name="y_pos5" default="2.8"/>
   <arg name="z_pos5" default="0.0"/>
-  <arg name="yaw_5"  default="0.0"/>
+  <arg name="yaw_5"  default="-0.79"/>
 
   <arg name="x_pos6" default="-4.5"/>
   <arg name="y_pos6" default="-2.2"/>
   <arg name="z_pos6" default="0.0"/>
-  <arg name="yaw_6"  default="0.0"/>
+  <arg name="yaw_6"  default="-0.79"/>
 
   <arg name="x_pos7" default="-4.5"/>
   <arg name="y_pos7" default="-7.2"/>
   <arg name="z_pos7" default="0.0"/>
-  <arg name="yaw_7"  default="0.0"/>
+  <arg name="yaw_7"  default="-0.79"/>
 
   <include file="$(find gazebo_ros)/launch/empty_world.launch">
-    <arg name="world_name" value="$(find fl4sr)/worlds/fl4sr_real_8_static.world"/>
+    <arg name="world_name" value="$(find fl4sr)/worlds/fl4sr_real_8_heavy.world"/>
     <arg name="paused" value="false"/>
     <arg name="use_sim_time" value="true"/>
     <arg name="gui" value="true"/>

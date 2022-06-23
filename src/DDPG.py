@@ -34,13 +34,13 @@ class DDPG:
         self.replay_buffer = replay_buffer
         # other parameters
         # actor, critic parameters
-        self.ACTOR_HIDDEN_LAYERS = [64, 64, 64]
-        self.CRITIC_HIDDEN_LAYERS = [64, 64, 64]
+        self.ACTOR_HIDDEN_LAYERS = [512, 512, 512]
+        self.CRITIC_HIDDEN_LAYERS = [512, 512, 512]
         # training parameters
         self.LEARNING_RATE_ACTOR = 0.001
         self.LEARNING_RATE_CRITIC = 0.001
         self.BATCH_SIZE = 512
-        self.GAMMA = 0.9
+        self.GAMMA = 0.99
         # update parameters
         self.RHO = 1.0
         # actor networks init and cuda
