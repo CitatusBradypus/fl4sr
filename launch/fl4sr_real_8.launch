@@ -51,7 +51,7 @@
   <arg name="yaw_7"  default="-0.79"/>
 
   <include file="$(find gazebo_ros)/launch/empty_world.launch">
-    <arg name="world_name" value="$(find fl4sr)/worlds/fl4sr_real_8_heavy.world"/>
+    <arg name="world_name" value="$(find fl4sr)/worlds/fl4sr_real_8_no_wall_test.world"/>
     <arg name="paused" value="false"/>
     <arg name="use_sim_time" value="true"/>
     <arg name="gui" value="true"/>

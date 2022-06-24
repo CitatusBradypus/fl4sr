@@ -27,14 +27,15 @@ class FederatedLearningDDPG(IndividualDDPG):
     def __init__(self, 
         episode_count: int,
         episode_step_count: int,
-        reward_goal: float,
-        reward_collision: float,
-        reward_progress: float,
-        factor_linear: float,
-        factor_angular: float,
         world: World,
         env = 'Enviroment',
-        name=None
+        name=None, 
+        reward_goal: float = 100.0,
+        reward_collision: float = -10.0,
+        reward_progress: float = -40.0,
+        factor_linear: float = 0.25,
+        factor_angular: float = 1.0
+        
         ) -> None:
         """Initialize
 
@@ -46,7 +47,7 @@ class FederatedLearningDDPG(IndividualDDPG):
         # set hyperparameters
         self.NAME = 'FLDDPG'
         self.BUFFER_SIZE = 10000
-        super().__init__(episode_count, episode_step_count, reward_goal, reward_collision, reward_progress, factor_linear, factor_angular, world, env)
+        super().__init__(episode_count, episode_step_count, world, env, reward_goal, reward_collision, reward_progress, factor_linear, factor_angular)
         # get model coutns
         self.agents_count = len(self.agents)
         self.actor_layers_count = len(self.agents[0].actor.layers)

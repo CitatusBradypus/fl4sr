@@ -68,6 +68,7 @@ def experiment_learn(
     """
     # ROS
     # launch roscore
+    os.environ['ROS_MASTER_URI'] = f"http://localhost:11350/"
     uuid = roslaunch.rlutil.get_or_generate_uuid(options_runid=None, options_wait_for_master=False)
     roslaunch.configure_logging(uuid)
     roscore_launch = roslaunch.parent.ROSLaunchParent(uuid, roslaunch_files=[], is_core=True)
@@ -93,8 +94,8 @@ def experiment_learn(
             DDPG = pickle.load(f)
         DDPG.init_enviroment()
     else:
-        DDPG = METHODS[method](EPISODE_COUNT, EPISODE_STEP_COUNT, reward_goal, reward_collision, reward_progress, \
-                               factor_linear, factor_angular, LEARN_WORLD, LEARN_ENV)
+        DDPG = METHODS[method](EPISODE_COUNT, EPISODE_STEP_COUNT, LEARN_WORLD, LEARN_ENV, reward_goal, reward_collision, reward_progress, \
+                               factor_linear, factor_angular)
         if update_step is None and update_period is not None:
             DDPG.EPISODE_UPDATE = True
             DDPG.TIME_UPDATE = update_period
@@ -137,11 +138,12 @@ def experiment_test(
     print('Simulation: Ready to start!')
     uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
     roslaunch.configure_logging(uuid)
-    world_launch = roslaunch.parent.ROSLaunchParent(uuid, [HOME + '/catkin_ws/src/fl4sr/launch/real_world.launch'])
+    world_launch = roslaunch.parent.ROSLaunchParent(uuid, [HOME + '/catkin_ws/src/fl4sr/launch/fl4sr_real_8.launch'])
     world_launch.start()
     time.sleep(5)
     # SETTINGS
     EPISODE_COUNT = 4
+    robot_alives = 8
     # set seeds
     if seed is not None:
         random.seed(seed)
@@ -157,6 +159,8 @@ def experiment_test(
         EVAL_WORLD = EVAL_WORLD_3
     elif world_number == 99:
         EVAL_WORLD = REAL_SIM_WORLD
+    elif world_number == 100:
+        EVAL_WORLD = REAL_WORLD_8
     # set env
     EVAL_ENV = 'Enviroment'
     # RUN
@@ -168,8 +172,8 @@ def experiment_test(
     else:
         DDPG = IndividualDDPG(EPISODE_COUNT, EPISODE_STEP_COUNT, EVAL_WORLD, EVAL_ENV,'EVAL-{}'.format(world_number))
         DDPG.agents_load(
-            [path_actor],
-            [path_critic]
+            [path_actor for _ in range(robot_alives)],
+            [path_critic for _ in range(robot_alives)]
         ) 
     success, _, _ = DDPG.test()
     roscore_launch.shutdown()

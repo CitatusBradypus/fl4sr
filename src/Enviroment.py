@@ -42,6 +42,8 @@ class Enviroment():
         """
         # params        
         self.COLLISION_RANGE = 0.25
+        self.MAXIMUM_SCAN_RANGE = 1.00
+        self.MINIMUM_SCAN_RANGE = 0.15
         self.GOAL_RANGE = 0.5
         self.REWARD_GOAL = reward_goal
         self.REWARD_COLLISION = reward_collision
@@ -72,6 +74,9 @@ class Enviroment():
         self.targets = world.target_positions
         self.x_targets = np.array(self.targets).T[0]
         self.y_targets = np.array(self.targets).T[1]
+
+        self.coordinates_arena = [[(0.0,5.0),(4.2,9.3)], [(0.0, 0.0), (4.2, 4.3)], [(0.0, -5.0), (4.2, -0.7)], [(0.0, -10.0), (4.2, -5.7)], [(-5.0,5.0),(-0.8,9.3)], [(-5.0,0.0),(-0.8,4.3)], [(-5.0,-5.0),(-0.8,-0.7)], [(-5.0,-10.0),(-0.8, -5.7)]]
+        
         
         # self.start_indexes = [0 for _ in range(len(self.robot_count))]
         # self.target_indexes = [0 for _ in range(len(self.robot_count))]
@@ -92,7 +97,7 @@ class Enviroment():
         # basic settings
         self.node = rospy.init_node('turtlebot_env', anonymous=True)
         self.rate = rospy.Rate(100)
-        self.laser_count = 360
+        self.laser_count = 24
         
         self.observation_dimension = self.laser_count + 4
         self.action_dimension = 2
@@ -127,6 +132,18 @@ class Enviroment():
             self.y_targets)
         return
 
+    def check_outside_arena(self,
+        x: list,
+        y: list,
+        idx: int
+        ) -> bool:
+        
+        coordinates = self.coordinates_arena[idx]
+        if (x[idx] > coordinates[0][0] and x[idx] < coordinates[1][0]) and \
+           (y[idx] > coordinates[0][1] and y[idx] < coordinates[1][1]):
+            return False
+        else: return True
+
     def reset(self,
         robot_id: int=-1
         ) -> None:
@@ -141,8 +158,7 @@ class Enviroment():
         rospy.wait_for_service('/gazebo/reset_simulation')
         rospy.wait_for_service('/gazebo/set_model_state')
         # set model states or reset world
-        
-        
+        print(f"robot_id: {robot_id}")
         if robot_id == -1:
             try:
                 state_setter = rospy.ServiceProxy('/gazebo/set_model_state', SetModelState)
@@ -240,6 +256,7 @@ class Enviroment():
         # self.pause()
         for i in range(self.robot_count):
             self.publisher_turtlebots[i].publish(twists[i])
+            #self.publisher_turtlebots[i].publish(Twist())
         # start of timing !!! changed to rospy time !!!
         start_time = rospy.get_time()
         running_time = 0
@@ -282,7 +299,7 @@ class Enviroment():
         s_actions_angular = actions_angular_z.reshape((self.robot_count, 1))
         s_robot_target_distances = robot_target_distances.reshape((self.robot_count, 1))
         s_robot_target_angle_difference = robot_target_angle_difference.reshape((self.robot_count, 1))
-        assert robot_lasers.shape == (self.robot_count, 360), 'Wrong lasers dimension!'
+        assert robot_lasers.shape == (self.robot_count, 24), 'Wrong lasers dimension!'
         assert s_actions_linear.shape == (self.robot_count, 1), 'Wrong action linear dimension!'
         assert s_actions_angular.shape == (self.robot_count, 1), 'Wrong action angular dimension!'
         assert s_robot_target_distances.shape == (self.robot_count, 1), 'Wrong distance to target!'
@@ -316,7 +333,9 @@ class Enviroment():
         was_restarted = False
         robot_finished = self.robot_finished.copy()
         for i in range(self.robot_count):
-            if self.robot_finished[i]:
+            # I will add the robot out of the arena here
+            check_outside = self.check_outside_arena(x, y, i)
+            if self.robot_finished[i] or check_outside:
                 self.reset(i)
                 was_restarted = True
         if was_restarted:
@@ -465,6 +484,16 @@ class Enviroment():
         y_diff = y_0 - y_1
         return np.arctan2(y_diff, x_diff)
 
+    def normalise_scan(self,
+        number: float) -> float:
+        """ Normalise the scan value with the given minimum and maxiumum range
+        Returns:
+            float: normalised scan value.
+        
+        """
+        normalised_value = self.MAXIMUM_SCAN_RANGE - (number - self.MINIMUM_SCAN_RANGE) * (self.MAXIMUM_SCAN_RANGE / (self.MAXIMUM_SCAN_RANGE - self.MINIMUM_SCAN_RANGE))
+        return normalised_value
+
     def get_robot_lasers_collisions(self,
         ) -> tuple:
         """Returns values of all robots lasers and if robots collided.
@@ -480,14 +509,25 @@ class Enviroment():
             scan = self.laser_info_getter[i].get_msg()
             # each laser in scan
             for j in range(len(scan.ranges)):
-                lasers[i].append(0)
-                if scan.ranges[j] == float('Inf'):
-                    lasers[i][j] = 3.5
-                elif np.isnan(scan.ranges[j]):
-                    lasers[i][j] = 0
+                
+                if j == 0:
+                    pass
                 else:
-                    lasers[i][j] = scan.ranges[j]
-            if self.COLLISION_RANGE > min(lasers[i]) > 0:
+                    lasers[i].append(0)
+                
+                
+                if scan.ranges[j] == float('Inf'):
+                    lasers[i][j] = self.normalise_scan(self.MAXIMUM_SCAN_RANGE)
+                elif np.isnan(scan.ranges[j]):
+                    lasers[i][j] = self.MINIMUM_SCAN_RANGE
+                elif scan.ranges[j] < self.MINIMUM_SCAN_RANGE:
+                    lasers[i][j] = self.MINIMUM_SCAN_RANGE
+                else:
+                    lasers[i][j] = self.normalise_scan(scan.ranges[j])
+            lasers_deque = deque(lasers[i])
+            lasers[i] = list(lasers_deque.rotate(1))
+            if max(lasers[i]) > self.normalise_scan(self.COLLISION_RANGE):
+                print(f"This is a normalised collision value: {self.normalise_scan(self.COLLISION_RANGE)}")
                 collisions[i] = True
         lasers = np.array(lasers)
         collisions = np.array(collisions)
@@ -500,6 +540,7 @@ class Enviroment():
         Returns:
             np.ndarray: Starting states.
         """
+        print(f"cur start")
         model_state = self.position_info_getter.get_msg()
         robot_indexes = self.get_robot_indexes_from_model_state(model_state)
         x, y, theta, _ = self.get_positions_from_model_state(model_state, 
@@ -523,7 +564,7 @@ class Enviroment():
         s_actions_angular = np.zeros((self.robot_count, 1))
         s_robot_target_distances = robot_target_distances.reshape((self.robot_count, 1))
         s_robot_target_angle_difference = robot_target_angle_difference.reshape((self.robot_count, 1))
-        assert robot_lasers.shape == (self.robot_count, 360), 'Wrong lasers dimension!'
+        assert robot_lasers.shape == (self.robot_count, 24), 'Wrong lasers dimension!'
         assert s_actions_linear.shape == (self.robot_count, 1), 'Wrong action linear dimension!'
         assert s_actions_angular.shape == (self.robot_count, 1), 'Wrong action angular dimension!'
         assert s_robot_target_distances.shape == (self.robot_count, 1), 'Wrong distance to target!'
@@ -532,4 +573,5 @@ class Enviroment():
                            s_actions_linear, s_actions_angular, 
                            s_robot_target_distances, s_robot_target_angle_difference))
         assert states.shape == (self.robot_count, self.observation_dimension), 'Wrong states dimension!'
+        print(f"cur end")
         return states

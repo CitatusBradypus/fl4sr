@@ -20,13 +20,13 @@ class IndividualDDPG():
     def __init__(self,
         episode_count: int,
         episode_step_count: int,
-        reward_goal: float,
-        reward_collision: float,
-        reward_progress: float,
-        factor_linear: float,
-        factor_angular: float,
         world: World,
-        env = 'Enviroment',
+        env = 'Enviroment', 
+        reward_goal: float = 100.0,
+        reward_collision: float = -10.0,
+        reward_progress: float = -40.0,
+        factor_linear: float = 0.25,
+        factor_angular: float = 1.0,
         name=None
         ) -> None:
         """Initialize class and whole experiment.
@@ -37,6 +37,7 @@ class IndividualDDPG():
             world (World): contains information about experiment characteristics
             name (str, optional): Name of used method. Defaults to None.
         """
+        print(f"world: {world}")
         # global like variables
         self.TIME_TRAIN = 5
         self.TIME_TARGET = 5
@@ -76,6 +77,7 @@ class IndividualDDPG():
                 self.NAME = name
             else:
                 self.NAME = 'IDDPG'
+        print(f"NAME = {self.NAME}")
         self.init_data()
         # debugging
         self.debug = False
@@ -274,7 +276,7 @@ class IndividualDDPG():
                     print(actions)
                 current_states = new_states
                 self.data_collect_test(step, robots_finished, robots_succeeded_once, data)
-                if np.any(robots_finished):
+                if np.all(robots_finished):
                     break
             print('Robots succeded once: {}'.format(robots_succeeded_once))
             self.data_save_test(episode)

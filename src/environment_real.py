@@ -39,8 +39,8 @@ class RealEnviroment():
             world (World): holds enviroment variables
         """
         # params        
-        self.COLLISION_RANGE = 0.25
-        self.MINIMUM_SCAN_RANGE = 0.19
+        self.COLLISION_RANGE = 0.28
+        self.MINIMUM_SCAN_RANGE = 0.24
         self.GOAL_RANGE = 0.5
         self.REWARD_GOAL = 100.0
         self.REWARD_COLLISION = -10.0
@@ -91,7 +91,7 @@ class RealEnviroment():
         # basic settings
         self.node = rospy.init_node('real_tb_env', anonymous=True)
         self.rate = rospy.Rate(100)
-        self.laser_count = 24
+        self.laser_count = 360
         
         self.observation_dimension = self.laser_count + 4
         self.action_dimension = 2
@@ -105,8 +105,8 @@ class RealEnviroment():
 
         # positional info getter # TODO let's change this with whycodes.
         self.position_info_getter = InfoGetter()
-        self._position_subscriber = rospy.Subscriber("/11/odom", 
-                                                     Odometry, 
+        self._position_subscriber = rospy.Subscriber("/whycon/turtle_states", 
+                                                     ModelStates, 
                                                      self.position_info_getter)
 
         # lasers info getters, subscribers unused
@@ -116,6 +116,9 @@ class RealEnviroment():
                               LaserScan, 
                               self.laser_info_getter[id]) 
             for id, rid in enumerate(self.robot_indexes)]
+
+        # List of whycon id in order of turtlebot ID 9, 10, 11, 13
+        self.list_whycon_id = ['5', '7', '8', '6']
 
         # various simulation outcomes
         self.robot_finished = np.zeros((self.robot_count), dtype=bool)
@@ -234,31 +237,29 @@ class RealEnviroment():
         #one_twist.linear.x = actions_linear_x
         #one_twist.angular.z = actions_angular_z
         for i in range(self.robot_count):
-            self.publisher_turtlebots[i].publish(Twist())
+            self.publisher_turtlebots[i].publish(twists[0])
         # publish twists
         # self.pause()
-        print("timing started")
         # start of timing !!! changed to rospy time !!!
         start_time = time.time() #rospy.get_time()
         running_time = 0
         # move robots with action for time_step        
-        print("timinig iee") 
         while(time.time()-start_time < time_step):
             time.sleep(0.01)
             #print(f"in the while loop... : {time.time()-start_time}")
             
         # Publishing Empty Twist to run the robot only for 0.1 s
-        print("timing ended")
 
         #for i in range(self.robot_count):
         #    self.publisher_turtlebots[i].publish(Twist())
         # send empty commands to robots
         # self.unpause()
         # read current positions of robots
-        odom = self.position_info_getter.get_msg()
-        robot_indexes = self.get_robot_indexes_from_odom(odom)
-        x, y, theta, correct = self.get_positions_from_odom(odom, robot_indexes)
-        print("odom ended")
+        model_states = self.position_info_getter.get_msg()
+        robot_indexes = self.get_robot_indexes_from_model_state(model_states)
+        x, y, theta, correct = self.get_positions_from_model_state(model_states, robot_indexes)
+        print(f"x: {x}, y: {y}, theta: {theta}")
+        #print("model_state ended")
         # check for damaged robots
         if np.any(np.isnan(correct)):
             print('ERROR: Enviroment: nan robot twist detected!')
@@ -277,7 +278,7 @@ class RealEnviroment():
         robot_lasers, robot_collisions = self.get_robot_lasers_collisions_sparse()
         print("state obtained")
         # create state array 
-        # = lasers (24), 
+        # = lasers (360), 
         #   action linear x (1), action angular z (1), 
         #   distance to target (1), angle to target (1)
         # = dimension (6, 28)
@@ -285,7 +286,7 @@ class RealEnviroment():
         s_actions_angular = actions_angular_z.reshape((self.robot_count, 1))
         s_robot_target_distances = robot_target_distances.reshape((self.robot_count, 1))
         s_robot_target_angle_difference = robot_target_angle_difference.reshape((self.robot_count, 1))
-        assert robot_lasers.shape == (self.robot_count, 24), 'Wrong lasers dimension!'
+        assert robot_lasers.shape == (self.robot_count, 360), 'Wrong lasers dimension!'
         assert s_actions_linear.shape == (self.robot_count, 1), 'Wrong action linear dimension!'
         assert s_actions_angular.shape == (self.robot_count, 1), 'Wrong action angular dimension!'
         assert s_robot_target_distances.shape == (self.robot_count, 1), 'Wrong distance to target!'
@@ -392,12 +393,14 @@ class RealEnviroment():
         Returns:
             list: Robot indexes. ('tb_2' index is list[2])
         """
-        robots = [None for i in range(len(self.robot_alives))]
+        robots = []#[None for i in range(len(self.robot_alives))]
         if model_state is None:
             model_state = self.position_info_getter.get_msg()
-        for i in range(len(model_state.name)):
-            if 'tb2' in model_state.name[i]:
-                robots[int(model_state.name[i][-1])] = i
+        for w_id in self.list_whycon_id:
+            for i in range(len(model_state.name)):
+                if w_id in model_state.name[i]:
+                    print(f"i: {i}, w_id: {w_id}")
+                    robots.append(i)
         return robots
 
     def action_to_twist(self,
@@ -413,8 +416,8 @@ class RealEnviroment():
         """
         assert len(action) == 2, 'Wrong action dimension!'
         twist = Twist()
-        twist.linear.x = action[1] * 0.15
-        twist.angular.z = action[0] * 2.0# * (np.pi / 2)
+        twist.linear.x = action[1] * 0.25
+        twist.angular.z = action[0] * 1.0# * (np.pi / 2)
         return twist 
 
     def get_distance(self, 
@@ -454,23 +457,30 @@ class RealEnviroment():
         for rid in self.robot_indexes:
             index = robot_indexes[rid]
             pose = model_state.pose[index]
-            twist = model_state.twist[index]
+            #twist = model_state.twist[index]
             x.append(pose.position.x)
             y.append(pose.position.y)
-            theta.append(euler_from_quaternion((pose.orientation.x, 
+            # roll from whycon is the one for yaw for the robot. Reverse rotational direction. 
+            roll = euler_from_quaternion((pose.orientation.x, 
                                                 pose.orientation.y, 
                                                 pose.orientation.z, 
-                                                pose.orientation.w,))[2])
-            correct.append(twist.angular.x)
+                                                pose.orientation.w))[0]
+            
+            yaw = - (roll - np.pi/2)
+            theta.append(yaw)
+            #correct.append(twist.angular.x)
         x = np.array(x)
         y = np.array(y)
         theta = np.array(theta)
-        correct = np.array(correct)
+        print(f"ModelStates: {model_state.pose[3]}, robot_indexes: {robot_indexes}")
+        print(f"angles: {theta}")
+        #correct = np.array(correct)
         return x, y, theta, correct
     def get_positions_from_odom(self,
         odom: Odometry,
         robot_indexes: list
         ) -> tuple:
+
         # TODO I think it will be great whycode can produce output in ModelState
         """Get positional information from model_state
 
@@ -527,10 +537,10 @@ class RealEnviroment():
         Returns:
             tuple: lasers, collisions
         """
-        # laser: 760->24
+        # laser: 760->360
         # offset: pi
         total_sample_num = 760
-        sampled_sample_num = 24
+        sampled_sample_num = 360
         offset_scan = math.pi
         scaled_offset_scan = int(total_sample_num * offset_scan / (2*math.pi))
         lasers = []
@@ -556,12 +566,19 @@ class RealEnviroment():
                 else:
                     lasers[i][j] = scan.ranges[j]
             
-            lasers = [[l for k, l in enumerate(lasers[i]) if k % 32==0]]
+            #lasers = [[l for k, l in enumerate(lasers[i]) if k % 32==0]]
+            list_laser = [i for i in range(360)]
+            scale_factor = 760/360
+            list_laser_scaled = np.array(list_laser) * scale_factor
+            list_int_laser_scaled = [int(i) for i in list_laser_scaled]
+            lasers = [np.take(lr, list_int_laser_scaled) for lr in lasers]
+           # print(lasers)
+            
             if self.COLLISION_RANGE > min(lasers[i]) > self.MINIMUM_SCAN_RANGE:
                 collisions[i] = True
             
-        print(f"length of lasers: {len(lasers)}, lasers: {lasers}")
-        lasers = np.array(lasers).reshape(self.robot_count, 24)
+        #print(f"length of lasers: {len(lasers)}, lasers: {lasers}")
+        lasers = np.array(lasers).reshape(self.robot_count, 360)
         collisions = np.array(collisions)
         print(f"collisions: {collisions}")
         return lasers, collisions
@@ -588,7 +605,7 @@ class RealEnviroment():
                     lasers[i][j] = 0
                 else:
                     lasers[i][j] = scan.ranges[j]
-            if self.COLLISION_RANGE > min(lasers[i]) > 0:
+            if self.COLLISION_RANGE > min(lasers[i]) > 0.2:
                 collisions[i] = True
         lasers = np.array(lasers)
         collisions = np.array(collisions)
@@ -602,11 +619,11 @@ class RealEnviroment():
             np.ndarray: Starting states.
         """
         print(f"print state started")
-        odom = self.position_info_getter.get_msg()
-        robot_indexes = self.get_robot_indexes_from_odom(odom)
+        model_states = self.position_info_getter.get_msg()
+        robot_indexes = self.get_robot_indexes_from_model_state(model_states)
         print(f"robot_indexs:{robot_indexes}")
-        x, y, theta, _ = self.get_positions_from_odom(odom,robot_indexes)
-        print(f"odom: {odom}")
+        x, y, theta, _ = self.get_positions_from_model_state(model_states,robot_indexes)
+        print(f"model_states: {model_states}")
         # get current distance to goal
         robot_target_distances = self.get_distance(x, self.x_targets, 
                                                    y, self.y_targets)
@@ -619,7 +636,7 @@ class RealEnviroment():
         robot_lasers, robot_collisions = self.get_robot_lasers_collisions_sparse()
         print(f"shape of laser: {robot_lasers.shape}")
         # create state array 
-        # = lasers (24), 
+        # = lasers (360), 
         #   action linear x (1), action angular z (1), 
         #   distance to target (1), angle to target (1)
         # = dimension (6, 28)
@@ -627,7 +644,7 @@ class RealEnviroment():
         s_actions_angular = np.zeros((self.robot_count, 1))
         s_robot_target_distances = robot_target_distances.reshape((self.robot_count, 1))
         s_robot_target_angle_difference = robot_target_angle_difference.reshape((self.robot_count, 1))
-        assert robot_lasers.shape == (self.robot_count, 24), 'Wrong lasers dimension!'
+        assert robot_lasers.shape == (self.robot_count,360), 'Wrong lasers dimension!'
         assert s_actions_linear.shape == (self.robot_count, 1), 'Wrong action linear dimension!'
         assert s_actions_angular.shape == (self.robot_count, 1), 'Wrong action angular dimension!'
         assert s_robot_target_distances.shape == (self.robot_count, 1), 'Wrong distance to target!'
@@ -659,7 +676,7 @@ class RealEnviroment():
     #     robot_lasers, robot_collisions = self.get_robot_lasers_collisions()
         
     #     # create state array 
-    #     # = lasers (24), 
+    #     # = lasers (360), 
     #     #   action linear x (1), action angular z (1), 
     #     #   distance to target (1), angle to target (1)
     #     # = dimension (6, 28)
@@ -667,7 +684,7 @@ class RealEnviroment():
     #     s_actions_angular = np.zeros((self.robot_count, 1))
     #     s_robot_target_distances = robot_target_distances.reshape((self.robot_count, 1))
     #     s_robot_target_angle_difference = robot_target_angle_difference.reshape((self.robot_count, 1))
-    #     assert robot_lasers.shape == (self.robot_count, 24), 'Wrong lasers dimension!'
+    #     assert robot_lasers.shape == (self.robot_count, 360), 'Wrong lasers dimension!'
     #     assert s_actions_linear.shape == (self.robot_count, 1), 'Wrong action linear dimension!'
     #     assert s_actions_angular.shape == (self.robot_count, 1), 'Wrong action angular dimension!'
     #     assert s_robot_target_distances.shape == (self.robot_count, 1), 'Wrong distance to target!'

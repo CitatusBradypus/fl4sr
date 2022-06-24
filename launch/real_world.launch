@@ -6,7 +6,7 @@
   <arg name="x_pos1" default="0.5"/>
   <arg name="y_pos1" default="0.5"/>
   <arg name="z_pos1" default="0.0"/>
-  <arg name="yaw_1"  default="1.57"/>
+  <arg name="yaw_1"  default="0.0"/>
 
 
 

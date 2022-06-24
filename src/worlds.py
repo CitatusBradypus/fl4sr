@@ -146,9 +146,9 @@ TURTLEBOT_WORLD_5_STARTS = World(
 # TODO needs to be modified after setting up WhyCODE
 REAL_WORLD = World(
     robot_alives=[True],
-    x_starts=[[0.0]],
-    y_starts=[[0.0]],
-    target_positions=[[2.5, -2.5]]
+    x_starts=[[0.7]],
+    y_starts=[[0.3]],
+    target_positions=[[3.4, 2.8]]
 )
 REAL_SIM_WORLD = World(
     robot_alives=[True],
