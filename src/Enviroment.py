@@ -19,7 +19,7 @@ from gazebo_msgs.msg import ModelState
 from gazebo_msgs.srv import SetModelState
 from std_srvs.srv import Empty
 from tf.transformations import euler_from_quaternion
-
+from collections import deque
 
 class Enviroment():
     """Similar class as openAI gym Env. 
@@ -97,7 +97,7 @@ class Enviroment():
         # basic settings
         self.node = rospy.init_node('turtlebot_env', anonymous=True)
         self.rate = rospy.Rate(100)
-        self.laser_count = 24
+        self.laser_count = 23
         
         self.observation_dimension = self.laser_count + 4
         self.action_dimension = 2
@@ -299,7 +299,7 @@ class Enviroment():
         s_actions_angular = actions_angular_z.reshape((self.robot_count, 1))
         s_robot_target_distances = robot_target_distances.reshape((self.robot_count, 1))
         s_robot_target_angle_difference = robot_target_angle_difference.reshape((self.robot_count, 1))
-        assert robot_lasers.shape == (self.robot_count, 24), 'Wrong lasers dimension!'
+        assert robot_lasers.shape == (self.robot_count, 23), 'Wrong lasers dimension!'
         assert s_actions_linear.shape == (self.robot_count, 1), 'Wrong action linear dimension!'
         assert s_actions_angular.shape == (self.robot_count, 1), 'Wrong action angular dimension!'
         assert s_robot_target_distances.shape == (self.robot_count, 1), 'Wrong distance to target!'
@@ -509,25 +509,26 @@ class Enviroment():
             scan = self.laser_info_getter[i].get_msg()
             # each laser in scan
             for j in range(len(scan.ranges)):
-                
+
                 if j == 0:
                     pass
                 else:
                     lasers[i].append(0)
-                
-                
-                if scan.ranges[j] == float('Inf'):
-                    lasers[i][j] = self.normalise_scan(self.MAXIMUM_SCAN_RANGE)
-                elif np.isnan(scan.ranges[j]):
-                    lasers[i][j] = self.MINIMUM_SCAN_RANGE
-                elif scan.ranges[j] < self.MINIMUM_SCAN_RANGE:
-                    lasers[i][j] = self.MINIMUM_SCAN_RANGE
-                else:
-                    lasers[i][j] = self.normalise_scan(scan.ranges[j])
+                    if scan.ranges[j] == float('Inf'):
+                        lasers[i][j-1] = self.normalise_scan(self.MAXIMUM_SCAN_RANGE)
+                    elif np.isnan(scan.ranges[j]):
+                        lasers[i][j-1] = self.MINIMUM_SCAN_RANGE
+                    elif scan.ranges[j] < self.MINIMUM_SCAN_RANGE:
+                        lasers[i][j-1] = self.MINIMUM_SCAN_RANGE
+                    else:
+                        lasers[i][j-1] = self.normalise_scan(scan.ranges[j])
             lasers_deque = deque(lasers[i])
-            lasers[i] = list(lasers_deque.rotate(1))
+            #print(f"lasers_deque: {lasers_deque}")
+            lasers_deque.rotate(1)
+            #print(f"lasers_deque: {lasers_deque}")
+            lasers[i] = list(lasers_deque)
             if max(lasers[i]) > self.normalise_scan(self.COLLISION_RANGE):
-                print(f"This is a normalised collision value: {self.normalise_scan(self.COLLISION_RANGE)}")
+                #print(f"This is a normalised collision value: {self.normalise_scan(self.COLLISION_RANGE)}")
                 collisions[i] = True
         lasers = np.array(lasers)
         collisions = np.array(collisions)
@@ -564,7 +565,7 @@ class Enviroment():
         s_actions_angular = np.zeros((self.robot_count, 1))
         s_robot_target_distances = robot_target_distances.reshape((self.robot_count, 1))
         s_robot_target_angle_difference = robot_target_angle_difference.reshape((self.robot_count, 1))
-        assert robot_lasers.shape == (self.robot_count, 24), 'Wrong lasers dimension!'
+        assert robot_lasers.shape == (self.robot_count, 23), 'Wrong lasers dimension!'
         assert s_actions_linear.shape == (self.robot_count, 1), 'Wrong action linear dimension!'
         assert s_actions_angular.shape == (self.robot_count, 1), 'Wrong action angular dimension!'
         assert s_robot_target_distances.shape == (self.robot_count, 1), 'Wrong distance to target!'
