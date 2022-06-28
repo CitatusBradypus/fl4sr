@@ -13,16 +13,17 @@ sys.path.append(HOME + '/catkin_ws/src/fl4sr/src')
 # Commands are saved to command list, which are then then run.
 # This is done so the experiment can be restarted after encoutering error.
 
-dict_reward = {'reward_goal': [100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0], 'reward_collision': [-10.0,-30.0, -50.0, -10.0,-30.0, -50.0, -10.0,-30.0, -50.0], 'reward_progress': [40.0, 40.0, 40.0, 30.0, 30.0, 30.0, 20.0, 20.0, 20.0]}
-dict_factor = {'factor_angular': [1.0]}
-dict_algorithms = {'algorithms': ['IDDPG']}
+dict_reward = {'reward_goal': [100.0, 100.0], 'reward_collision': [-20.0], 'reward_progress': [40.0, 40.0]}
+#dict_factor = {'factor_angular': [1.0]}
+dict_algorithms = {'algorithms': ['FLDDPG', 'IDDPG']}
+dict_discount_factors = {'discount_factor': [0.99]}
 
 COMMAND_LIST = []
 for rg, rc, rp in zip(dict_reward['reward_goal'], dict_reward['reward_collision'], dict_reward['reward_progress']):
-    for fa in dict_factor['factor_angular']:
+    for df in dict_discount_factors['discount_factor']:
         for algo in dict_algorithms['algorithms']:
             COMMAND_LIST.append(['rosrun', 'fl4sr', 'experiment.py', algo, f'--mode={"learn"}', '--updatePeriod=1', f'--reward_goal={rg}',\
-             f'--reward_collision={rc}',f'--reward_progress={rp}', '--factor_linear=0.25',f'--factor_angular={fa}'])
+             f'--reward_collision={rc}',f'--reward_progress={rp}', '--factor_linear=0.25', f'--discount_factor={df}'])
 
 
 #COMMAND_LIST = [

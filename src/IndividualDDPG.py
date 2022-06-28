@@ -24,9 +24,11 @@ class IndividualDDPG():
         env = 'Enviroment', 
         reward_goal: float = 100.0,
         reward_collision: float = -10.0,
-        reward_progress: float = -40.0,
+        reward_progress: float = 40.0,
         factor_linear: float = 0.25,
         factor_angular: float = 1.0,
+        discount_factor: float = 0.99,
+        is_progress: bool = False,
         name=None
         ) -> None:
         """Initialize class and whole experiment.
@@ -37,7 +39,7 @@ class IndividualDDPG():
             world (World): contains information about experiment characteristics
             name (str, optional): Name of used method. Defaults to None.
         """
-        print(f"world: {world}")
+        print(f"INSIDE IndividualDDPG: episode_count: {episode_count}, episode_step_count: {episode_step_count}. world: {world}, env: {env}, reward_goal: {reward_goal}, reward_collision: {reward_collision}, reward_progress: {reward_progress}, factor_linear: {factor_linear}, factor_angular: {factor_angular}, discount_factor: {discount_factor}, is_progress: {is_progress}")
         # global like variables
         self.TIME_TRAIN = 5
         self.TIME_TARGET = 5
@@ -61,6 +63,9 @@ class IndividualDDPG():
         self.reward_progress= reward_progress
         self.factor_linear= factor_linear
         self.factor_angular= factor_angular
+        self.is_progress=is_progress
+        print(f"discount factor: {discount_factor}")
+        self.discount_factor = discount_factor
         # init enviroment and dimensions
         self.world = world
         self.env = env
@@ -96,7 +101,7 @@ class IndividualDDPG():
         self.reward_collision,
         self.reward_progress,
         self.factor_linear,
-        self.factor_angular)
+        self.factor_angular, self.is_progress)
         elif self.env == 'RealEnviroment':
             self.enviroment = RealEnviroment(self.world)
         else: raise Exception(f"No Environment named {self.env} is available.")
@@ -123,7 +128,8 @@ class IndividualDDPG():
         """
         return [DDPG(self.buffers[i], 
                      self.observation_dimension, 
-                     self.action_dimension) 
+                     self.action_dimension,
+                     self.discount_factor) 
                 for i in range(self.robot_count)]
 
     def init_paths(self):

@@ -59,16 +59,20 @@ def experiment_learn(
         reward_collision: float,
         reward_progress: float,
         factor_linear: float,
-        factor_angular: float
+        factor_angular: float,
+        discount_factor: float,
+        is_progress: bool
     ) -> bool:
     """Run learning experiment with specified values.
 
     Returns:
         bool: If program finished correctly.
     """
+    print(f"INSIDE experiment_learn | method: {method}, restart: {restart}, seed: {seed}, update_step: {update_step}, update_period: {update_period}, reward_goal: {reward_goal}, reward_collision: {reward_collision}, reward_progress: {reward_progress}, factor_linear: {factor_linear}, factor_angular: {factor_angular}, discount_factor: {discount_factor}, is_progress: {is_progress}")
     # ROS
     # launch roscore
-    os.environ['ROS_MASTER_URI'] = f"http://localhost:11350/"
+    os.environ['ROS_MASTER_URI'] = f"http://192.168.210.127:11351/"
+    #os.environ['GAZEBO_MASTER_URI'] = f"http://192.168.210.127:11371/"
     uuid = roslaunch.rlutil.get_or_generate_uuid(options_runid=None, options_wait_for_master=False)
     roslaunch.configure_logging(uuid)
     roscore_launch = roslaunch.parent.ROSLaunchParent(uuid, roslaunch_files=[], is_core=True)
@@ -93,9 +97,11 @@ def experiment_learn(
         with open('experiment.pickle', 'rb') as f:
             DDPG = pickle.load(f)
         DDPG.init_enviroment()
+        print(f"INSIDE Enviroment | RESTART!")
     else:
-        DDPG = METHODS[method](EPISODE_COUNT, EPISODE_STEP_COUNT, LEARN_WORLD, LEARN_ENV, reward_goal, reward_collision, reward_progress, \
-                               factor_linear, factor_angular)
+        
+        print(f"INSIDE Enviroment | INITIALISE DDPG")
+        DDPG = METHODS[method](EPISODE_COUNT, EPISODE_STEP_COUNT, LEARN_WORLD, LEARN_ENV, reward_goal, reward_collision, reward_progress, factor_linear, factor_angular, discount_factor, method)
         if update_step is None and update_period is not None:
             DDPG.EPISODE_UPDATE = True
             DDPG.TIME_UPDATE = update_period
@@ -303,6 +309,14 @@ if __name__ == '__main__':
         type=float,
         help='Scaling factor for the angular velocity.')
     parser.add_argument(
+        '--discount_factor',
+        type=float,
+        help='discount_factor')   
+    parser.add_argument(
+        '--is_progress',
+        type=bool,
+        help='Determining the progress reward using step size or just using distances')
+    parser.add_argument(
         'method', 
         type=str,
         help='Name of used method.')
@@ -315,7 +329,7 @@ if __name__ == '__main__':
     if args.mode == 'learn':
         print(f"It is in learning mode.")
         experiment_learn(args.method, args.restart, args.seed, args.updateStep, args.updatePeriod, args.reward_goal, args.reward_collision,\
-                         args.reward_progress, args.factor_linear, args.factor_angular)
+                         args.reward_progress, args.factor_linear, args.factor_angular, args.discount_factor, args.is_progress)
     elif args.mode == 'real':
         print(f"It is in real mode")
         experiment_real(args.restart, args.seed, args.worldNumber, args.pathActor, args.pathCritic)
