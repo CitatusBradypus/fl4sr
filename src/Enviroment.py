@@ -32,9 +32,10 @@ class Enviroment():
         reward_goal: float,
         reward_collision: float,
         reward_progress: float,
+        reward_max_collision: float,
         factor_linear: float,
         factor_angular: float,
-        is_progress: bool = False
+        is_progress: bool = True
         ) -> None:
         """Initializes eviroment.
 
@@ -58,7 +59,7 @@ class Enviroment():
         self.FACTOR_ANGULAR = 1.0#factor_angular
         self.FACTOR_NORMALISE_DISTANCE = 5.0
         self.FACTOR_NORMALISE_ANGLE = np.pi
-        self.REWARD_MAX_COLLISION_DENSE = 3
+        self.REWARD_MAX_COLLISION_DENSE = reward_max_collision
         self.LAMBDA_COLLISION = np.log(self.REWARD_MAX_COLLISION_DENSE + 1)
         print(f"self.FACTOR_LINEAR: {self.FACTOR_LINEAR}")
         self.MAX_DISTANCE = 5.5
@@ -387,8 +388,8 @@ class Enviroment():
         for idx in np.where(robot_collisions)[0]:
             reward_collision[idx] = (self.REWARD_COLLISION_VARIABLE * abs(np.cos(id_collisions[idx]/self.laser_count)) - self.REWARD_COLLISION_FIX)
         # 2. Reward for the dense collision reward - suppresses more progressive reward
-        # for jdx in range(self.robot_count):
-        #     reward_collision[jdx] += -(np.exp(robot_lasers[jdx][id_collisions[jdx]] * self.LAMBDA_COLLISION)) + 1
+        for jdx in range(self.robot_count):
+            reward_collision[jdx] += -(np.exp(robot_lasers[jdx][id_collisions[jdx]] * self.LAMBDA_COLLISION)) + 1
         
         return reward_collision
         

@@ -15,8 +15,8 @@ sys.path.append(HOME + '/catkin_ws/src/fl4sr/src')
 
 dict_reward = {'reward_goal': [100.0], 'reward_collision': [-20.0], 'reward_progress': [40.0]}
 #dict_factor = {'factor_angular': [1.0]}
-dict_algorithms = {'algorithms': ['IDDPG', 'SNDDPG', 'SEDDPG', 'FLDDPG']}
-dict_reward_max_collision = {'reward_max_collision': [1.0, 3.0]}
+dict_algorithms = {'algorithms': ['IDDPG', 'SNDDPG', 'SEDDPG']}
+dict_reward_max_collision = {'reward_max_collision': [0.0]}
 
 COMMAND_LIST = []
 for rg, rc, rp in zip(dict_reward['reward_goal'], dict_reward['reward_collision'], dict_reward['reward_progress']):

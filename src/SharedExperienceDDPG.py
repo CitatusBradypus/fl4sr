@@ -21,12 +21,15 @@ class SharedExperienceDDPG(IndividualDDPG):
         episode_step_count: int,
         world: World,
         env = 'Enviroment',
-        name=None, 
         reward_goal: float = 100.0,
         reward_collision: float = -10.0,
-        reward_progress: float = -40.0,
+        reward_progress: float = 40.0,
+        reward_max_collision: float = 3.0,
         factor_linear: float = 0.25,
-        factor_angular: float = 1.0
+        factor_angular: float = 1.0,
+        discount_factor: float = 0.99,
+        is_progress: bool = False,
+        name=None, 
         
         ) -> None:
         """Initialize SEDDPG.
@@ -38,7 +41,7 @@ class SharedExperienceDDPG(IndividualDDPG):
         """
         self.NAME = 'SEDDPG'
         self.BUFFER_SIZE = 50000
-        super().__init__(episode_count, episode_step_count, world, env, reward_goal, reward_collision, reward_progress, factor_linear, factor_angular)
+        super().__init__(episode_count, episode_step_count, world, env, reward_goal, reward_collision, reward_progress, reward_max_collision, factor_linear, factor_angular, discount_factor, is_progress, name)
         return
 
     def init_buffers(self
@@ -59,7 +62,8 @@ class SharedExperienceDDPG(IndividualDDPG):
         """
         return [DDPG(self.buffers[0], 
                      self.observation_dimension, 
-                     self.action_dimension) 
+                     self.action_dimension,
+                     self.discount_factor) 
                 for i in range(self.robot_count)]
 
     def agents_actions(self,

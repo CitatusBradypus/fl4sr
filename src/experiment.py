@@ -58,6 +58,7 @@ def experiment_learn(
         reward_goal: float,
         reward_collision: float,
         reward_progress: float,
+        reward_max_collision: float,
         factor_linear: float,
         factor_angular: float,
         discount_factor: float,
@@ -101,7 +102,7 @@ def experiment_learn(
     else:
         
         print(f"INSIDE Enviroment | INITIALISE DDPG")
-        DDPG = METHODS[method](EPISODE_COUNT, EPISODE_STEP_COUNT, LEARN_WORLD, LEARN_ENV, reward_goal, reward_collision, reward_progress, factor_linear, factor_angular, discount_factor, method)
+        DDPG = METHODS[method](EPISODE_COUNT, EPISODE_STEP_COUNT, LEARN_WORLD, LEARN_ENV, reward_goal, reward_collision, reward_progress, reward_max_collision, factor_linear, factor_angular, discount_factor, method)
         if update_step is None and update_period is not None:
             DDPG.EPISODE_UPDATE = True
             DDPG.TIME_UPDATE = update_period
@@ -301,6 +302,10 @@ if __name__ == '__main__':
         type=float,
         help='Reward for the progress.')
     parser.add_argument(
+        '--reward_max_collision',
+        type=float,
+        help='Reward for MAx collision dense.')
+    parser.add_argument(
         '--factor_linear',
         type=float,
         help='Scaling factor for the linear velocity.')
@@ -329,7 +334,7 @@ if __name__ == '__main__':
     if args.mode == 'learn':
         print(f"It is in learning mode.")
         experiment_learn(args.method, args.restart, args.seed, args.updateStep, args.updatePeriod, args.reward_goal, args.reward_collision,\
-                         args.reward_progress, args.factor_linear, args.factor_angular, args.discount_factor, args.is_progress)
+                         args.reward_progress, args.reward_max_collision, args.factor_linear, args.factor_angular, args.discount_factor, args.is_progress)
     elif args.mode == 'real':
         print(f"It is in real mode")
         experiment_real(args.restart, args.seed, args.worldNumber, args.pathActor, args.pathCritic)
