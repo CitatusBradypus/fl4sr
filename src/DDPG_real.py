@@ -11,7 +11,7 @@ import torch.optim as optim
 import numpy as np
 
 
-class DDPG:
+class DDPG_real:
     """Deep deterministic policy gradient.
     """
         
@@ -36,7 +36,7 @@ class DDPG:
         # other parameters
         # actor, critic parameters
         self.ACTOR_HIDDEN_LAYERS = [512, 512]
-        self.CRITIC_HIDDEN_LAYERS = [512,512]
+        self.CRITIC_HIDDEN_LAYERS = [512, 512]
         # training parameters
         self.LEARNING_RATE_ACTOR = 0.001
         self.LEARNING_RATE_CRITIC = 0.001

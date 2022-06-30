@@ -11,11 +11,10 @@ import roslaunch
 import numpy as np
 HOME = os.environ['HOME']
 sys.path.append(HOME + '/catkin_ws/src/fl4sr/src')
-from IndividualDDPG import IndividualDDPG
-from IndividualDDPG_real import IndividualDDPG_real
+from IndividualDDPG_random_obs import IndividualDDPG
 from SharedNetworkDDPG import SharedNetworkDDPG
 from SharedExperienceDDPG import SharedExperienceDDPG
-from FederatedLearningDDPG import FederatedLearningDDPG
+from FederatedLearningDDPG_random_obs import FederatedLearningDDPG
 from PositiveWeightingDDPG import PositiveWeightingDDPG
 from RealWeightingDDPG import RealWeightingDDPG
 from MomentumAveragingDDPG import MomentumAveragingDDPG
@@ -227,7 +226,7 @@ def experiment_real(
             DDPG = pickle.load(f)
         DDPG.init_enviroment()
     else:
-        DDPG = IndividualDDPG_real(EPISODE_COUNT, EPISODE_STEP_COUNT, EVAL_WORLD, EVAL_ENV,'REAL-{}'.format(world_number))
+        DDPG = IndividualDDPG(EPISODE_COUNT, EPISODE_STEP_COUNT, EVAL_WORLD, EVAL_ENV,'REAL-{}'.format(world_number))
         DDPG.agents_load(
             [path_actor],
             [path_critic]

@@ -33,6 +33,7 @@ class Enviroment():
         reward_collision: float,
         reward_progress: float,
         reward_max_collision: float,
+        list_reward: int,
         factor_linear: float,
         factor_angular: float,
         is_progress: bool = True
@@ -48,20 +49,52 @@ class Enviroment():
         self.MAXIMUM_SCAN_RANGE = 0.8
         self.MINIMUM_SCAN_RANGE = 0.15
         self.GOAL_RANGE = 0.5
+        print(f"list_reward: {list_reward}")
+        if list_reward == 1:
+            self.ARR_REWARD_GOAL = np.array([100, 100, 100, 100])
+            self.ARR_REWARD_COLLISION = np.array([-20, -20, -20, -20])
+            self.ARR_REWARD_PROGRESS = np.array([40, 40, 40, 40])
+        if list_reward == 2:
+            self.ARR_REWARD_GOAL = np.array([100, 100, 100, 100])
+            self.ARR_REWARD_COLLISION = np.array([0, -20, -50, -30])
+            self.ARR_REWARD_PROGRESS = np.array([60, 40, 20, 40])
+        if list_reward == 3:
+            self.ARR_REWARD_GOAL = np.array([100, 100, 100, 100])
+            self.ARR_REWARD_COLLISION = np.array([0, -30, -40, -60])
+            self.ARR_REWARD_PROGRESS = np.array([60, 30, 40, 40])
+        if list_reward == 4:
+            self.ARR_REWARD_GOAL = np.array([100, 100, 100, 100])
+            self.ARR_REWARD_COLLISION = np.array([0, -20, -30, -40])
+            self.ARR_REWARD_PROGRESS = np.array([60, 10, 20, 20])
+        if list_reward == 5:
+            self.ARR_REWARD_GOAL = np.array([100, 100, 100, 100])
+            self.ARR_REWARD_COLLISION = np.array([0, -30, -40, -60])
+            self.ARR_REWARD_PROGRESS = np.array([60, 10, 20, 20])
+        if list_reward == 6:
+            self.ARR_REWARD_GOAL = np.array([100, 100, 100, 100])
+            self.ARR_REWARD_COLLISION = np.array([0, -60, -40, -30])
+            self.ARR_REWARD_PROGRESS = np.array([60, 30, 40, 40])
+        if list_reward == 7:
+            self.ARR_REWARD_GOAL = np.array([100, 100, 100, 100])
+            self.ARR_REWARD_COLLISION = np.array([0, -60, -40, -30])
+            self.ARR_REWARD_PROGRESS = np.array([60, 10, 20, 20])
+        if list_reward == 8:
+            self.ARR_REWARD_GOAL = np.array([100, 100, 100, 100])
+            self.ARR_REWARD_COLLISION = np.array([0, 0, -20, -20])
+            self.ARR_REWARD_PROGRESS = np.array([60, 0, 10, 10])
         self.REWARD_GOAL = reward_goal
         self.REWARD_COLLISION_FIX_RATE = 0.25
-        self.REWARD_COLLISION_FIX = reward_collision * self.REWARD_COLLISION_FIX_RATE
-        self.REWARD_COLLISION_VARIABLE = reward_collision * (1 - self.REWARD_COLLISION_FIX_RATE)
-        self.REWARD_COLLISION = self.REWARD_COLLISION_FIX + self.REWARD_COLLISION_VARIABLE
+        self.REWARD_COLLISION_FIX = self.ARR_REWARD_COLLISION * self.REWARD_COLLISION_FIX_RATE
+        self.REWARD_COLLISION_VARIABLE = self.ARR_REWARD_COLLISION * (1 - self.REWARD_COLLISION_FIX_RATE)
+        self.REWARD_COLLISION = np.add(self.REWARD_COLLISION_FIX, self.REWARD_COLLISION_VARIABLE)
         self.REWARD_TIME = -0.3
-        self.PROGRESS_REWARD_FACTOR = reward_progress
+        self.PROGRESS_REWARD_FACTOR = self.ARR_REWARD_PROGRESS
         self.FACTOR_LINEAR = factor_linear
         self.FACTOR_ANGULAR = 1.0#factor_angular
         self.FACTOR_NORMALISE_DISTANCE = 5.0
         self.FACTOR_NORMALISE_ANGLE = np.pi
         self.REWARD_MAX_COLLISION_DENSE = reward_max_collision
         self.LAMBDA_COLLISION = np.log(self.REWARD_MAX_COLLISION_DENSE + 1)
-        print(f"self.FACTOR_LINEAR: {self.FACTOR_LINEAR}")
         self.MAX_DISTANCE = 5.5
         self.IS_PROGRESS = is_progress
         if self.IS_PROGRESS == True:
@@ -94,7 +127,7 @@ class Enviroment():
         self.x_targets = np.array(self.targets).T[0]
         self.y_targets = np.array(self.targets).T[1]
 
-        self.coordinates_arena = [[(0.0,5.0),(4.2,9.3)], [(0.0, 0.0), (4.2, 4.3)], [(0.0, -5.0), (4.2, -0.7)], [(0.0, -10.0), (4.2, -5.7)], [(-5.0,5.0),(-0.8,9.3)], [(-5.0,0.0),(-0.8,4.3)], [(-5.0,-5.0),(-0.8,-0.7)], [(-5.0,-10.0),(-0.8, -5.7)]]
+        self.coordinates_arena = [[(0.0,5.0),(4.2,9.3)], [(0.0, 0.0), (4.2, 4.3)], [(-5.0,-5.0),(-0.8,-0.7)], [(-5.0,-10.0),(-0.8, -5.7)]]
         
         
         # self.start_indexes = [0 for _ in range(len(self.robot_count))]
@@ -177,7 +210,6 @@ class Enviroment():
         rospy.wait_for_service('/gazebo/reset_simulation')
         rospy.wait_for_service('/gazebo/set_model_state')
         # set model states or reset world
-        print(f"robot_id: {robot_id}")
         if robot_id == -1:
             try:
                 state_setter = rospy.ServiceProxy('/gazebo/set_model_state', SetModelState)
@@ -342,18 +374,20 @@ class Enviroment():
         for i in range(self.robot_count):
             progress_distance[i] = self.robot_target_distances_previous[i] - robot_target_distances[i]
             if progress_distance[i] > 0:
-                reward_distance[i] = self.PROGRESS_REWARD_FACTOR * (progress_distance[i])
+                reward_distance[i] = self.PROGRESS_REWARD_FACTOR[i] * (progress_distance[i])
             else:
                 reward_distance[i] = 0
         # reward_distance = - np.e ** (0.25 * robot_target_distances)
         # goal reward
         reward_goal = np.zeros(self.robot_count)
-        reward_goal[robot_target_distances < self.GOAL_RANGE] = self.REWARD_GOAL
+        for i in range(self.robot_count):
+            if robot_target_distances[i] < self.GOAL_RANGE:
+                reward_goal[i] = self.ARR_REWARD_GOAL[i]
+            #reward_goal[robot_target_distances < self.GOAL_RANGE] = self.REWARD_GOAL
         self.robot_finished[robot_target_distances < self.GOAL_RANGE] = True
         self.robot_succeeded[robot_target_distances < self.GOAL_RANGE] = True
         # collision reward
         reward_collision = self.calculate_reward_collision(robot_collisions, id_collisions, robot_lasers)
-        print(f"REWARD COLLISION: {reward_collision}")
         #reward_collision[np.where(robot_collisions)] = self.REWARD_COLLISION
         reward_time = self.REWARD_TIME
         self.robot_finished[np.where(robot_collisions)] = True
@@ -386,7 +420,7 @@ class Enviroment():
         # 1. Reward for the collision event
         reward_collision = np.zeros(self.robot_count)
         for idx in np.where(robot_collisions)[0]:
-            reward_collision[idx] = (self.REWARD_COLLISION_VARIABLE * abs(np.cos(id_collisions[idx]/self.laser_count)) - self.REWARD_COLLISION_FIX)
+            reward_collision[idx] = (self.REWARD_COLLISION_VARIABLE[idx] * abs(np.cos(id_collisions[idx]/self.laser_count)) - self.REWARD_COLLISION_FIX[idx])
         # 2. Reward for the dense collision reward - suppresses more progressive reward
         for jdx in range(self.robot_count):
             reward_collision[jdx] += -(np.exp(robot_lasers[jdx][id_collisions[jdx]] * self.LAMBDA_COLLISION)) + 1
@@ -439,6 +473,7 @@ class Enviroment():
             model_state = self.position_info_getter.get_msg()
         for i in range(len(model_state.name)):
             if 'tb3' in model_state.name[i]:
+
                 robots[int(model_state.name[i][-1])] = i
         return robots
 
@@ -592,7 +627,6 @@ class Enviroment():
         Returns:
             np.ndarray: Starting states.
         """
-        print(f"cur start")
         model_state = self.position_info_getter.get_msg()
         robot_indexes = self.get_robot_indexes_from_model_state(model_state)
         x, y, theta, _ = self.get_positions_from_model_state(model_state, 
@@ -625,5 +659,4 @@ class Enviroment():
                            #s_actions_linear, s_actions_angular, 
                            s_robot_target_distances, s_robot_target_angle_difference))
         assert states.shape == (self.robot_count, self.observation_dimension), 'Wrong states dimension!'
-        print(f"cur end")
         return states

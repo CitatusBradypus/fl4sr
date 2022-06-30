@@ -6,7 +6,7 @@ sys.path.append(HOME + '/catkin_ws/src/fl4sr/src')
 import numpy as np
 import time
 import pickle
-from Enviroment_diff_reward import Enviroment
+from Enviroment_random_obs import Enviroment_random_obs
 from environment_real import RealEnviroment
 from worlds import World
 from DDPG import DDPG
@@ -101,7 +101,7 @@ class IndividualDDPG():
         """Initializes environment.
         """
         if self.env == 'Enviroment':
-            self.enviroment = Enviroment(self.world, self.reward_goal,
+            self.enviroment = Enviroment_random_obs(self.world, self.reward_goal,
         self.reward_collision,
         self.reward_progress,
         self.reward_max_collision,

@@ -30,7 +30,7 @@ COMMAND_LIST = [
     #['rosrun', 'fl4sr', 'experiment.py', f'--mode={"eval"}', 'FLDDPG', f'--worldNumber={100}', f'--pathActor={HOME}/catkin_ws/src/fl4sr/src/data/real_robot/FLDDPG/actor-final-6.pkl', f'--pathCritic={HOME}/catkin_ws/src/fl4sr/src/data/real_robot/FLDDPG/critic-final-6.pkl'],
     #['rosrun', 'fl4sr', 'experiment.py', f'--mode={"eval"}', 'FLDDPG', f'--worldNumber={100}', f'--pathActor={HOME}/catkin_ws/src/fl4sr/src/data/real_robot/FLDDPG/actor-final-7.pkl', f'--pathCritic={HOME}/catkin_ws/src/fl4sr/src/data/real_robot/FLDDPG/critic-final-7.pkl'],
     
-    ['rosrun', 'fl4sr', 'experiment.py', f'--mode={"real"}', 'FLDDPG', f'--pathActor={HOME}/catkin_ws/src/fl4sr/src/data/real_robot/FLDDPG/actor-final-5.pkl', f'--pathCritic={HOME}/catkin_ws/src/fl4sr/src/data/real_robot/FLDDPG/critic-final-2.pkl'],
+    ['rosrun', 'fl4sr', 'experiment.py', f'--mode={"real"}', 'FLDDPG', f'--pathActor={HOME}/catkin_ws/src/fl4sr/src/data/real_robot/FLDDPG/exp_limit_diff_reward_uP2/actor-final-3.pkl', f'--pathCritic={HOME}/catkin_ws/src/fl4sr/src/data/real_robot/FLDDPG/exp_limit_diff_reward_uP2/critic-final-3.pkl'],
     
     #['rosrun', 'fl4sr', 'experiment.py', 'learn=True', 'PWDDPG', '--updatePeriod=2'],
     #['rosrun', 'fl4sr', 'experiment.py', 'learn=True', 'RWDDPG', '--updatePeriod=2'],

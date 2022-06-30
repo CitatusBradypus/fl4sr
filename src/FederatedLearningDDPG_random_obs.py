@@ -7,7 +7,7 @@ from numpy.core.fromnumeric import size
 import torch
 HOME = os.environ['HOME']
 sys.path.append(HOME + '/catkin_ws/src/fl4sr/src')
-from IndividualDDPG import IndividualDDPG
+from IndividualDDPG_random_obs import IndividualDDPG
 from worlds import World
 from DDPG import DDPG
 from buffers import BasicBuffer, Transition

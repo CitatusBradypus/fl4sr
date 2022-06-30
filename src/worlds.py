@@ -192,3 +192,22 @@ REAL_WORLD_8 = World(
                       [-1.2, -4.8], 
                       [-1.2, -9.8]]
 )
+
+REAL_WORLD_4_diff_reward = World(
+    robot_alives=[True, 
+                  True, 
+                  True, 
+                  True],
+    x_starts=[[0.6], 
+             [0.6],
+             [-4.5],
+             [-4.5]],
+    y_starts=[[5.5], 
+             [0.5],
+             [-2.2], 
+             [-7.2]],
+    target_positions=[[3.8, 7.8], 
+                      [3.8, 2.8], 
+                      [-1.2, -4.8], 
+                      [-1.2, -9.8]]
+)

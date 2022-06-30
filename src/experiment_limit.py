@@ -12,9 +12,9 @@ import numpy as np
 HOME = os.environ['HOME']
 sys.path.append(HOME + '/catkin_ws/src/fl4sr/src')
 from IndividualDDPG import IndividualDDPG
-from IndividualDDPG_real import IndividualDDPG_real
-from SharedNetworkDDPG import SharedNetworkDDPG
-from SharedExperienceDDPG import SharedExperienceDDPG
+# TODO This is the different with experiment.py
+from SharedNetworkDDPG_limit import SharedNetworkDDPG
+from SharedExperienceDDPG_limit import SharedExperienceDDPG
 from FederatedLearningDDPG import FederatedLearningDDPG
 from PositiveWeightingDDPG import PositiveWeightingDDPG
 from RealWeightingDDPG import RealWeightingDDPG
@@ -74,19 +74,19 @@ def experiment_learn(
     print(f"INSIDE experiment_learn | method: {method}, restart: {restart}, seed: {seed}, update_step: {update_step}, update_period: {update_period}, reward_goal: {reward_goal}, reward_collision: {reward_collision}, reward_progress: {reward_progress}, list_reward: {list_reward}, factor_linear: {factor_linear}, factor_angular: {factor_angular}, discount_factor: {discount_factor}, is_progress: {is_progress}")
     # ROS
     # launch roscore
-    os.environ['ROS_MASTER_URI'] = f"http://192.168.210.127:11351/"
-    #os.environ['GAZEBO_MASTER_URI'] = f"http://192.168.210.127:11371/"
-    uuid = roslaunch.rlutil.get_or_generate_uuid(options_runid=None, options_wait_for_master=False)
-    roslaunch.configure_logging(uuid)
-    roscore_launch = roslaunch.parent.ROSLaunchParent(uuid, roslaunch_files=[], is_core=True)
-    roscore_launch.start()
+    # os.environ['ROS_MASTER_URI'] = f"http://192.168.210.127:11351/"
+    # #os.environ['GAZEBO_MASTER_URI'] = f"http://192.168.210.127:11371/"
+    # uuid = roslaunch.rlutil.get_or_generate_uuid(options_runid=None, options_wait_for_master=False)
+    # roslaunch.configure_logging(uuid)
+    # roscore_launch = roslaunch.parent.ROSLaunchParent(uuid, roslaunch_files=[], is_core=True)
+    # roscore_launch.start()
     # launch simulation
     print('Simulation: Ready to start!')
-    uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
-    roslaunch.configure_logging(uuid)
-    world_launch = roslaunch.parent.ROSLaunchParent(uuid, [HOME + '/catkin_ws/src/fl4sr/launch/fl4sr_real_8_diff_reward.launch'])
-    world_launch.start()
-    time.sleep(5)
+    # uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
+    # roslaunch.configure_logging(uuid)
+    # world_launch = roslaunch.parent.ROSLaunchParent(uuid, [HOME + '/catkin_ws/src/fl4sr/launch/fl4sr_real_8_diff_reward.launch'])
+    # world_launch.start()
+    # time.sleep(5)
     # SETTINGS
     # set seeds
     if seed is not None:
@@ -112,7 +112,7 @@ def experiment_learn(
             DDPG.EPISODE_UPDATE = False
             DDPG.TIME_UPDATE = update_period
     success, _, _ = DDPG.run()
-    roscore_launch.shutdown()
+    #roscore_launch.shutdown()
     # RESULTS
     if not success:
         DDPG.terminate_enviroment()
@@ -227,7 +227,7 @@ def experiment_real(
             DDPG = pickle.load(f)
         DDPG.init_enviroment()
     else:
-        DDPG = IndividualDDPG_real(EPISODE_COUNT, EPISODE_STEP_COUNT, EVAL_WORLD, EVAL_ENV,'REAL-{}'.format(world_number))
+        DDPG = IndividualDDPG(EPISODE_COUNT, EPISODE_STEP_COUNT, EVAL_WORLD, EVAL_ENV,'REAL-{}'.format(world_number))
         DDPG.agents_load(
             [path_actor],
             [path_critic]

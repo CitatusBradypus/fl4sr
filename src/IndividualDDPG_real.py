@@ -9,11 +9,11 @@ import pickle
 from Enviroment_diff_reward import Enviroment
 from environment_real import RealEnviroment
 from worlds import World
-from DDPG import DDPG
+from DDPG_real import DDPG_real
 from buffers import BasicBuffer, PrioritizedExperienceReplayBuffer, Transition
 
 
-class IndividualDDPG():
+class IndividualDDPG_real():
     """Individial DDPG algorithm. Serves as basis for other algorithms.
     """
 
@@ -132,7 +132,7 @@ class IndividualDDPG():
         Returns:
             list: Agents list.
         """
-        return [DDPG(self.buffers[i], 
+        return [DDPG_real(self.buffers[i], 
                      self.observation_dimension, 
                      self.action_dimension,
                      self.discount_factor) 

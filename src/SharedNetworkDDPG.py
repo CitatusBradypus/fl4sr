@@ -25,6 +25,7 @@ class SharedNetworkDDPG(IndividualDDPG):
         reward_collision: float = -10.0,
         reward_progress: float = 40.0,
         reward_max_collision: float = 3.0,
+        list_reward: int = 1,
         factor_linear: float = 0.25,
         factor_angular: float = 1.0,
         discount_factor: float = 0.99,
@@ -41,7 +42,7 @@ class SharedNetworkDDPG(IndividualDDPG):
         """
         self.NAME = 'SNDDPG'
         self.BUFFER_SIZE = 70000
-        super().__init__(episode_count, episode_step_count, world, env, reward_goal, reward_collision, reward_progress, reward_max_collision, factor_linear, factor_angular, discount_factor, is_progress, name)
+        super().__init__(episode_count, episode_step_count, world, env, reward_goal, reward_collision, reward_progress, reward_max_collision, list_reward, factor_linear, factor_angular, discount_factor, is_progress, name)
         return
 
     def init_buffers(self
