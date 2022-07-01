@@ -561,20 +561,22 @@ class RealEnviroment():
             #print(f"shifted_scan_ranges: {shifted_scan_ranges}")
 
             scan_range = scan.ranges
-            reverse_scan_range = scan_range.reverse()
+            print(f"scan_range: {list(scan_range)}")
+            reverse_scan_range = list(scan_range)[::-1]
+            print(f"reverse_scan_range: {reverse_scan_range}")
             # each laser in scan
             for j in range(len(scan.ranges)):
                 lasers[i].append(0)
-                if scan.ranges[j] == float('Inf'):
+                if reverse_scan_range[j] == float('Inf'):
                     lasers[i][j] = self.normalise_scan(self.MAXIMUM_SCAN_RANGE)
-                elif np.isnan(scan.ranges[j]):
+                elif np.isnan(reverse_scan_range[j]):
                     lasers[i][j] = self.normalise_scan(self.MAXIMUM_SCAN_RANGE)
-                elif scan.ranges[j] < self.MINIMUM_SCAN_RANGE:
+                elif reverse_scan_range[j] < self.MINIMUM_SCAN_RANGE:
                     lasers[i][j] = self.normalise_scan(self.MINIMUM_SCAN_RANGE)
-                elif scan.ranges[j] > self.MAXIMUM_SCAN_RANGE:
+                elif reverse_scan_range[j] > self.MAXIMUM_SCAN_RANGE:
                     lasers[i][j] = self.normalise_scan(self.MAXIMUM_SCAN_RANGE)
                 else:
-                    lasers[i][j] = self.normalise_scan(scan.ranges[j])
+                    lasers[i][j] = self.normalise_scan(reverse_scan_range[j])
             
             #lasers = [[l for k, l in enumerate(lasers[i]) if k % 32==0]]
             list_laser = [i for i in range(24)]

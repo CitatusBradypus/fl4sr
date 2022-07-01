@@ -45,9 +45,9 @@ class Enviroment():
         """
         print(f"INSIDE Enviroment | world: {world}, reward_goal: {reward_goal}, reward_collision: {reward_collision}, reward_progress: {reward_progress}, factor_linear: {factor_linear}, factor_angular: {factor_angular}, is_progress: {is_progress}")
         # params        
-        self.COLLISION_RANGE = 0.25
-        self.MAXIMUM_SCAN_RANGE = 0.8
-        self.MINIMUM_SCAN_RANGE = 0.15
+        self.COLLISION_RANGE = 0.30
+        self.MAXIMUM_SCAN_RANGE = 1.0
+        self.MINIMUM_SCAN_RANGE = 0.20
         self.GOAL_RANGE = 0.5
         print(f"list_reward: {list_reward}")
         if list_reward == 1:
@@ -149,7 +149,7 @@ class Enviroment():
         # basic settings
         self.node = rospy.init_node('turtlebot_env', anonymous=True)
         self.rate = rospy.Rate(100)
-        self.laser_count = 24
+        self.laser_count = 96
         
         self.observation_dimension = self.laser_count + 2
         self.action_dimension = 2
@@ -342,7 +342,7 @@ class Enviroment():
         robot_lasers, robot_collisions, id_collisions = self.get_robot_lasers_collisions()
 
         # create state array 
-        # = lasers (24), 
+        # = lasers (96), 
         #   action linear x (1), action angular z (1), 
         #   distance to target (1), angle to target (1)
         # = dimension (6, 28)
@@ -350,7 +350,7 @@ class Enviroment():
         s_actions_angular = actions_angular_z.reshape((self.robot_count, 1))
         s_robot_target_distances = robot_target_distances.reshape((self.robot_count, 1)) /self.FACTOR_NORMALISE_DISTANCE 
         s_robot_target_angle_difference = robot_target_angle_difference.reshape((self.robot_count, 1)) / self.FACTOR_NORMALISE_ANGLE
-        assert robot_lasers.shape == (self.robot_count, 24), 'Wrong lasers dimension!'
+        assert robot_lasers.shape == (self.robot_count, 96), 'Wrong lasers dimension!'
         assert s_actions_linear.shape == (self.robot_count, 1), 'Wrong action linear dimension!'
         assert s_actions_angular.shape == (self.robot_count, 1), 'Wrong action angular dimension!'
         assert s_robot_target_distances.shape == (self.robot_count, 1), 'Wrong distance to target!'
@@ -642,7 +642,7 @@ class Enviroment():
         robot_lasers, robot_collisions, id_collisions = self.get_robot_lasers_collisions()
         
         # create state array 
-        # = lasers (24), 
+        # = lasers (96), 
         #   action linear x (1), action angular z (1), 
         #   distance to target (1), angle to target (1)
         # = dimension (6, 28)
@@ -650,7 +650,7 @@ class Enviroment():
         s_actions_angular = np.zeros((self.robot_count, 1))
         s_robot_target_distances = robot_target_distances.reshape((self.robot_count, 1))
         s_robot_target_angle_difference = robot_target_angle_difference.reshape((self.robot_count, 1))
-        assert robot_lasers.shape == (self.robot_count,24), 'Wrong lasers dimension!'
+        assert robot_lasers.shape == (self.robot_count,96), 'Wrong lasers dimension!'
         assert s_actions_linear.shape == (self.robot_count, 1), 'Wrong action linear dimension!'
         assert s_actions_angular.shape == (self.robot_count, 1), 'Wrong action angular dimension!'
         assert s_robot_target_distances.shape == (self.robot_count, 1), 'Wrong distance to target!'
