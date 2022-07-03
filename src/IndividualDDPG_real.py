@@ -85,7 +85,7 @@ class IndividualDDPG_real():
             if name is not None:
                 self.NAME = name
             else:
-                self.NAME = 'IDDPG'
+                self.NAME = 'REALROBOT'
         print(f"NAME = {self.NAME}")
         self.init_data()
         # debugging
@@ -110,6 +110,7 @@ class IndividualDDPG_real():
         self.factor_angular, self.is_progress)
         elif self.env == 'RealEnviroment':
             self.enviroment = RealEnviroment(self.world)
+    
         else: raise Exception(f"No Environment named {self.env} is available.")
         self.observation_dimension = self.enviroment.observation_dimension
         self.action_dimension = self.enviroment.action_dimension

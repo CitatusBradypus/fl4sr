@@ -34,7 +34,7 @@ from worlds import REAL_WORLD_8
 from worlds import REAL_WORLD_4_diff_reward
 # GLOBAL VARIABLES
 DDPG = None
-METHODS = {'IDDPG': IndividualDDPG,
+METHODS = {'IDDPG': IndividualDDPG_real,
            'SEDDPG': SharedExperienceDDPG,
            'SNDDPG': SharedNetworkDDPG,
            'FLDDPG': FederatedLearningDDPG,

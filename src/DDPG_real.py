@@ -33,6 +33,7 @@ class DDPG_real:
         self.state_dimension = state_dimension
         self.action_dimension = action_dimension
         self.replay_buffer = replay_buffer
+        print(f"self.state_dimension: {self.state_dimension}")
         # other parameters
         # actor, critic parameters
         self.ACTOR_HIDDEN_LAYERS = [512, 512]
@@ -66,6 +67,7 @@ class DDPG_real:
         self.critic_optimizer = optim.Adam(self.critic.parameters(),
                                            self.LEARNING_RATE_CRITIC)
         update_parameters(self.critic_target, self.critic)
+        print(f"self.critic: {self.critic}")
         return
 
     def select_action(self, 

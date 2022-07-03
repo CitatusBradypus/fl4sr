@@ -131,7 +131,7 @@ class RealEnviroment():
             self.x_targets, 
             self.y_starts, 
             self.y_targets)
-        return
+        print(f"observation space: {self.observation_dimension}")
 
     # def reset(self,
     #     robot_id: int=-1

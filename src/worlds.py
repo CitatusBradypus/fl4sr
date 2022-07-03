@@ -148,7 +148,7 @@ REAL_WORLD = World(
     robot_alives=[True],
     x_starts=[[0.7]],
     y_starts=[[0.3]],
-    target_positions=[[3.4, 2.8]]
+    target_positions=[[3.45, 2.8]]
 )
 REAL_SIM_WORLD = World(
     robot_alives=[True],
