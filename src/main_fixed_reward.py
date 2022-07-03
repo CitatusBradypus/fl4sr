@@ -15,19 +15,20 @@ sys.path.append(HOME + '/catkin_ws/src/fl4sr/src')
 
 dict_reward = {'reward_goal': [100.0], 'reward_collision': [-20.0], 'reward_progress': [40.0]}
 dict_list = {'list_reward': 1}
-dict_update_period = {'updatePeriod': [1,3, 5, 10]}
+dict_update_period = {'updatePeriod': [1,2, 3, 5]}
+dict_seed = {'seed': [102,103]}
 #dict_factor = {'factor_angular': [1.0]}
 dict_algorithms = {'algorithms': ['IDDPG', 'SEDDPG', 'SNDDPG', 'FLDDPG']}
-dict_reward_max_collision = {'reward_max_collision': [1.0]}
+#dict_reward_max_collision = {'reward_max_collision': [1.0]}
 
 COMMAND_LIST = []
 #for rg, rc, rp in zip(dict_reward['reward_goal'], dict_reward['reward_collision'], dict_reward['reward_progress']):
 for rg, rc, rp in zip(dict_reward['reward_goal'], dict_reward['reward_collision'], dict_reward['reward_progress']):
     for uP in dict_update_period['updatePeriod']:
-        for rmax in dict_reward_max_collision['reward_max_collision']:
+        for seed in dict_seed['seed']:
             for algo in dict_algorithms['algorithms']:
-                COMMAND_LIST.append(['rosrun', 'fl4sr', 'experiment_limit.py', algo, f'--mode={"learn"}',  f'--updatePeriod={uP}', f'--reward_goal={rg}',\
-                 f'--reward_collision={rc}',f'--reward_progress={rp}', f'--reward_max_collision={rmax}', f'--list_reward={dict_list["list_reward"]}', '--factor_linear=0.25', f'--discount_factor={0.99}'])
+                COMMAND_LIST.append(['rosrun', 'fl4sr', 'experiment_limit.py', algo, f'--mode={"learn"}', f'--seed={seed}', f'--updatePeriod={uP}', f'--reward_goal={rg}',\
+                 f'--reward_collision={rc}',f'--reward_progress={rp}', f'--reward_max_collision={1.0}', f'--list_reward={dict_list["list_reward"]}', '--factor_linear=0.25', f'--discount_factor={0.99}'])
 
 
 #COMMAND_LIST = [

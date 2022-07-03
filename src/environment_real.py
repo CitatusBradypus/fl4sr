@@ -39,9 +39,10 @@ class RealEnviroment():
             world (World): holds enviroment variables
         """
         # params        
-        self.COLLISION_RANGE = 0.28
+        self.COLLISION_RANGE = 0.25
         self.MAXIMUM_SCAN_RANGE = 0.8
-        self.MINIMUM_SCAN_RANGE = 0.22
+        self.MINIMUM_SCAN_RANGE = 0.15
+        self.MINIMUM_CUT_RANGE = 0.22
         self.GOAL_RANGE = 0.5
         self.REWARD_GOAL = 100.0
         self.REWARD_COLLISION = -10.0
@@ -99,7 +100,7 @@ class RealEnviroment():
 
         # publishers for turtlebots
         self.publisher_turtlebots = \
-            [rospy.Publisher('/11/cmd_vel_mux/safety_controller'.format(i), 
+            [rospy.Publisher('/9/cmd_vel_mux/safety_controller'.format(i), 
                              Twist, 
                              queue_size=1) 
             for i in self.robot_indexes]
@@ -113,7 +114,7 @@ class RealEnviroment():
         # lasers info getters, subscribers unused
         self.laser_info_getter = [InfoGetter() for i in range(self.robot_count)]
         self._laser_subscriber = \
-            [rospy.Subscriber('/11/scan'.format(rid), 
+            [rospy.Subscriber('/9/scan'.format(rid), 
                               LaserScan, 
                               self.laser_info_getter[id]) 
             for id, rid in enumerate(self.robot_indexes)]
@@ -213,7 +214,7 @@ class RealEnviroment():
     
     def step(self,
         actions: np.ndarray,
-        time_step: float=0.1
+        time_step: float=0.3
         ) -> tuple:
         """Perform one step of simulations using given actions and lasting for 
         set time.
@@ -561,22 +562,22 @@ class RealEnviroment():
             #print(f"shifted_scan_ranges: {shifted_scan_ranges}")
 
             scan_range = scan.ranges
-            print(f"scan_range: {list(scan_range)}")
-            reverse_scan_range = list(scan_range)[::-1]
-            print(f"reverse_scan_range: {reverse_scan_range}")
+            #print(f"scan_range: {list(scan_range)}")
+            #reverse_scan_range = list(scan_range)[::-1]
+            #print(f"reverse_scan_range: {reverse_scan_range}")
             # each laser in scan
             for j in range(len(scan.ranges)):
                 lasers[i].append(0)
-                if reverse_scan_range[j] == float('Inf'):
+                if scan_range[j] == float('Inf'):
                     lasers[i][j] = self.normalise_scan(self.MAXIMUM_SCAN_RANGE)
-                elif np.isnan(reverse_scan_range[j]):
+                elif np.isnan(scan_range[j]):
                     lasers[i][j] = self.normalise_scan(self.MAXIMUM_SCAN_RANGE)
-                elif reverse_scan_range[j] < self.MINIMUM_SCAN_RANGE:
-                    lasers[i][j] = self.normalise_scan(self.MINIMUM_SCAN_RANGE)
-                elif reverse_scan_range[j] > self.MAXIMUM_SCAN_RANGE:
+                elif scan_range[j] < self.MINIMUM_CUT_RANGE:
+                    lasers[i][j] = self.normalise_scan(self.MINIMUM_CUT_RANGE)
+                elif scan_range[j] > self.MAXIMUM_SCAN_RANGE:
                     lasers[i][j] = self.normalise_scan(self.MAXIMUM_SCAN_RANGE)
                 else:
-                    lasers[i][j] = self.normalise_scan(reverse_scan_range[j])
+                    lasers[i][j] = self.normalise_scan(scan_range[j])
             
             #lasers = [[l for k, l in enumerate(lasers[i]) if k % 32==0]]
             list_laser = [i for i in range(24)]

@@ -72,21 +72,21 @@ def experiment_learn(
         bool: If program finished correctly.
     """
     print(f"INSIDE experiment_learn | method: {method}, restart: {restart}, seed: {seed}, update_step: {update_step}, update_period: {update_period}, reward_goal: {reward_goal}, reward_collision: {reward_collision}, reward_progress: {reward_progress}, list_reward: {list_reward}, factor_linear: {factor_linear}, factor_angular: {factor_angular}, discount_factor: {discount_factor}, is_progress: {is_progress}")
-    # ROS
-    # launch roscore
-    os.environ['ROS_MASTER_URI'] = f"http://192.168.210.127:11351/"
-    #os.environ['GAZEBO_MASTER_URI'] = f"http://192.168.210.127:11371/"
-    uuid = roslaunch.rlutil.get_or_generate_uuid(options_runid=None, options_wait_for_master=False)
-    roslaunch.configure_logging(uuid)
-    roscore_launch = roslaunch.parent.ROSLaunchParent(uuid, roslaunch_files=[], is_core=True)
-    roscore_launch.start()
-    # launch simulation
-    print('Simulation: Ready to start!')
-    uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
-    roslaunch.configure_logging(uuid)
-    world_launch = roslaunch.parent.ROSLaunchParent(uuid, [HOME + '/catkin_ws/src/fl4sr/launch/fl4sr_real_8_diff_reward.launch'])
-    world_launch.start()
-    time.sleep(5)
+    # # ROS
+    # # launch roscore
+    # os.environ['ROS_MASTER_URI'] = f"http://192.168.210.127:11351/"
+    # #os.environ['GAZEBO_MASTER_URI'] = f"http://192.168.210.127:11371/"
+    # uuid = roslaunch.rlutil.get_or_generate_uuid(options_runid=None, options_wait_for_master=False)
+    # roslaunch.configure_logging(uuid)
+    # roscore_launch = roslaunch.parent.ROSLaunchParent(uuid, roslaunch_files=[], is_core=True)
+    # roscore_launch.start()
+    # # launch simulation
+    # print('Simulation: Ready to start!')
+    # uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
+    # roslaunch.configure_logging(uuid)
+    # world_launch = roslaunch.parent.ROSLaunchParent(uuid, [HOME + '/catkin_ws/src/fl4sr/launch/fl4sr_real_8_diff_reward.launch'])
+    # world_launch.start()
+    # time.sleep(5)
     # SETTINGS
     # set seeds
     if seed is not None:
