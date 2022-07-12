@@ -1,4 +1,4 @@
-#! /usr/bin/env python3.8
+#!/usr/bin/env python3.8
 import sys
 import os
 HOME = os.environ['HOME']

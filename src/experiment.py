@@ -48,7 +48,7 @@ EPISODE_STEP_COUNT = 1024
 
 LEARN_WORLD = REAL_WORLD_4_diff_reward
 
-EVAL_WORLD = EVAL_WORLD_0
+EVAL_WORLD = REAL_WORLD_4_diff_reward
 
 def experiment_learn(
         method: str,
@@ -129,6 +129,8 @@ def experiment_test(
         restart: bool,
         seed: int,
         world_number: int,
+        model_name: str, 
+        env_name: str,
         path_actor: str,
         path_critic: str
     ) -> bool:
@@ -147,12 +149,12 @@ def experiment_test(
     print('Simulation: Ready to start!')
     uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
     roslaunch.configure_logging(uuid)
-    world_launch = roslaunch.parent.ROSLaunchParent(uuid, [HOME + '/catkin_ws/src/fl4sr/launch/fl4sr_real_8.launch'])
+    world_launch = roslaunch.parent.ROSLaunchParent(uuid, [HOME + '/catkin_ws/src/fl4sr/launch/fl4sr_real_4_easy.launch'])
     world_launch.start()
     time.sleep(5)
     # SETTINGS
-    EPISODE_COUNT = 4
-    robot_alives = 8
+    EPISODE_COUNT = 10
+    robot_alives = 4
     # set seeds
     if seed is not None:
         random.seed(seed)
@@ -170,8 +172,10 @@ def experiment_test(
         EVAL_WORLD = REAL_SIM_WORLD
     elif world_number == 100:
         EVAL_WORLD = REAL_WORLD_8
+    elif world_number == 101:
+        EVAL_WORLD = REAL_WORLD_4_diff_reward
     # set env
-    EVAL_ENV = 'Enviroment'
+    EVAL_ENV = env_name
     # RUN
     print('Simulation: Ready to run!')
     if restart:
@@ -179,7 +183,7 @@ def experiment_test(
             DDPG = pickle.load(f)
         DDPG.init_enviroment()
     else:
-        DDPG = IndividualDDPG(EPISODE_COUNT, EPISODE_STEP_COUNT, EVAL_WORLD, EVAL_ENV,'EVAL-{}'.format(world_number))
+        DDPG = IndividualDDPG(EPISODE_COUNT, EPISODE_STEP_COUNT, EVAL_WORLD, model_name, EVAL_ENV,'EVAL-{}'.format(world_number))
         DDPG.agents_load(
             [path_actor for _ in range(robot_alives)],
             [path_critic for _ in range(robot_alives)]
@@ -204,14 +208,7 @@ def experiment_real(
         world_number: int,
         path_actor: str,
         path_critic: str
-    ) -> bool:
-    """Run evaluation experiment with specified values.
-
-    Returns:
-        bool: If program finished correctly.
-    """
-    # SETTINGS
-    EPISODE_COUNT = 5
+    ) -> None:
     # set seeds
     if seed is not None:
         random.seed(seed)
@@ -266,6 +263,16 @@ if __name__ == '__main__':
         '--worldNumber', 
         type=int,
         help='Specifier for world type.')
+
+    parser.add_argument(
+        '--model_name',
+        type=str,
+        help='Name of the model to evaluates.')
+
+    parser.add_argument(
+        '--env_name',
+        type=str,
+        help='Name of the environment file.')
     parser.add_argument(
         '--pathActor', 
         type=str,
@@ -347,5 +354,5 @@ if __name__ == '__main__':
         experiment_real(args.restart, args.seed, args.worldNumber, args.pathActor, args.pathCritic)
     elif args.mode == 'eval':
         print(f"It is in eval mode")
-        experiment_test(args.restart, args.seed, args.worldNumber, args.pathActor, args.pathCritic)
+        experiment_test(args.restart, args.seed, args.worldNumber, args.model_name, args.env_name, args.pathActor, args.pathCritic)
     else: raise Exception('Wrong mode!')

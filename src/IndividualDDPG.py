@@ -7,6 +7,7 @@ import numpy as np
 import time
 import pickle
 from Enviroment_diff_reward import Enviroment
+from Enviroment_eval import Enviroment_eval
 from environment_real import RealEnviroment
 from worlds import World
 from DDPG import DDPG
@@ -21,6 +22,7 @@ class IndividualDDPG():
         episode_count: int,
         episode_step_count: int,
         world: World,
+        model_name: str,
         env = 'Enviroment', 
         reward_goal: float = 100.0,
         reward_collision: float = -10.0,
@@ -94,6 +96,12 @@ class IndividualDDPG():
         print(self.agents)
         # paths
         self.init_paths()
+
+        # Model name
+        self.model_name = model_name
+
+    
+
         return
 
     def init_enviroment(self
@@ -102,6 +110,14 @@ class IndividualDDPG():
         """
         if self.env == 'Enviroment':
             self.enviroment = Enviroment(self.world, self.reward_goal,
+        self.reward_collision,
+        self.reward_progress,
+        self.reward_max_collision,
+        self.list_reward,
+        self.factor_linear,
+        self.factor_angular, self.is_progress)
+        elif self.env == 'Enviroment_eval':
+            self.enviroment = Enviroment_eval(self.world, self.model_name, self.reward_goal,
         self.reward_collision,
         self.reward_progress,
         self.reward_max_collision,
@@ -170,6 +186,16 @@ class IndividualDDPG():
         self.robots_finished = np.zeros((self.episode_step_count, self.robot_count), dtype=bool)
         self.data = []      
         return
+
+    def init_data_eval_list(self
+        ) -> None:
+        """Initializes data containers for evaluation.
+        """
+        self.list_robot_succeeded = []
+        self.list_arrival_time = []
+        self.list_traj_eff = []
+        return
+
     def init_data_real(self
         ) -> None:
         """Initializes data containers for evaluation.
@@ -266,6 +292,7 @@ class IndividualDDPG():
         """
         # before start
         self.init_data_test()
+        self.init_data_eval_list()
         self.parameters_save()
         self.print_starting_info(False)
         # epizode loop
@@ -293,6 +320,8 @@ class IndividualDDPG():
             print('Robots succeded once: {}'.format(robots_succeeded_once))
             self.data_save_test(episode)
         self.enviroment.reset()
+        self.data_collect_eval_list()
+        self.data_save_eval_list()
         return True, None, None
 
     def test_real(self
@@ -506,6 +535,24 @@ class IndividualDDPG():
         self.data.append(data)
         return
 
+    def data_collect_eval_list(self,
+        list_robot_succeeded,
+        list_arrival_time,
+        list_traj_eff
+        ) -> None:
+        """Collect list of data for fixed repetition of experiment.
+
+        Args:
+            list_robot_succeeded (list): list of successful episode for each agent for defined amount of runs
+            list_arrival_time (list): list of arrival time of each agent for n runs when successful.
+            list_traj_eff (list): list of traj eff of each agent for n runs when successful.
+        """
+        self.list_robot_succeeded = list_robot_succeeded
+        self.list_arrival_time = list_arrival_time
+        self.list_traj_eff = list_traj_eff
+
+        return
+
     
 
     def data_save(self, 
@@ -536,6 +583,24 @@ class IndividualDDPG():
                 self.robots_succeeded_once)
         with open(self.path_log + '/data-{}.pkl'.format(episode), 'wb') as f:
             pickle.dump(self.data, f)
+        return
+
+    def data_save_eval_list(self
+        ) -> None:
+        """Save collected data from evaluating.
+
+        Args:
+            None.
+            TODO I also want to compute average robot_succeeded, arrival_time and traj_eff....
+
+        """
+        np.save(self.path_log + '/list_robot_succeeded', 
+                self.list_robot_succeeded)
+        np.save(self.path_log + '/list_arrival_time', 
+                self.list_arrival_time)
+        np.save(self.path_log + '/list_traj_eff', 
+                self.list_traj_eff)
+        
         return
         
         
