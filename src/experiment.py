@@ -15,6 +15,7 @@ from IndividualDDPG import IndividualDDPG
 from SharedNetworkDDPG import SharedNetworkDDPG
 from SharedExperienceDDPG import SharedExperienceDDPG
 from FederatedLearningDDPG import FederatedLearningDDPG
+from SwarmLearningDDPG import SwarmLearningDDPG
 from PositiveWeightingDDPG import PositiveWeightingDDPG
 from RealWeightingDDPG import RealWeightingDDPG
 from MomentumAveragingDDPG import MomentumAveragingDDPG
@@ -34,6 +35,7 @@ METHODS = {'IDDPG': IndividualDDPG,
            'SEDDPG': SharedExperienceDDPG,
            'SNDDPG': SharedNetworkDDPG,
            'FLDDPG': FederatedLearningDDPG,
+           'SwarmDDPG': SwarmLearningDDPG,
            'PWDDPG': PositiveWeightingDDPG,
            'RWDDPG': RealWeightingDDPG,
            'MADDPG': MomentumAveragingDDPG,
