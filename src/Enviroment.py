@@ -207,7 +207,7 @@ class Enviroment():
         assert len(actions) == self.robot_count, 'Wrong actions dimension!'
         # generate twists, also get separate values of actions
         twists = [self.action_to_twist(action) for action in actions]
-        actions_linear_x = actions.T[1]
+        actions_linear_x = 0.8*actions.T[1]
         actions_angular_z = actions.T[0]
         # publish twists
         # self.pause()

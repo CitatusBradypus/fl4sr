@@ -15,12 +15,12 @@ sys.path.append(HOME + '/catkin_ws/src/fl4sr/src')
 # Commands are saved to command list, which are then then run.
 # This is done so the experiment can be restarted after encoutering error.
 
-dict_reward = {'reward_goal': [100.0], 'reward_collision': [-20.0], 'reward_progress': [40.0]}
+dict_reward = {'reward_goal': [100.0], 'reward_collision': [-30.0], 'reward_progress': [40.0]}
 dict_list = {'list_reward': 1}
-dict_update_period = {'updatePeriod': [3, 5]}
-dict_seed = {'seed': [101]}
+dict_update_period = {'updatePeriod': [1, 3, 5]}
+dict_seed = {'seed': [101,102,103]}
 #dict_factor = {'factor_angular': [1.0]}
-dict_algorithms = {'algorithms': ['FLDDPG', 'SwarmDDPG']}
+dict_algorithms = {'algorithms': ['local_update', 'simFL_update', 'pair_update']}
 #dict_reward_max_collision = {'reward_max_collision': [1.0]}
 
 COMMAND_LIST = []
@@ -29,8 +29,8 @@ for rg, rc, rp in zip(dict_reward['reward_goal'], dict_reward['reward_collision'
     for uP in dict_update_period['updatePeriod']:
         for seed in dict_seed['seed']:
             for algo in dict_algorithms['algorithms']:
-                COMMAND_LIST.append(['rosrun', 'fl4sr', 'experiment_limit.py', algo, f'--mode={"learn"}', f'--seed={seed}', f'--updatePeriod={uP}', f'--reward_goal={rg}',\
-                 f'--reward_collision={rc}',f'--reward_progress={rp}', f'--reward_max_collision={1.0}', f'--list_reward={dict_list["list_reward"]}', '--factor_linear=0.25', f'--discount_factor={0.99}'])
+                COMMAND_LIST.append(['rosrun', 'fl4sr', 'experiment_limit.py', 'SwarmDDPG', f'--mode={"learn"}', f'--seed={seed}', f'--updatePeriod={uP}', f'--reward_goal={rg}',\
+                 f'--reward_collision={rc}',f'--reward_progress={rp}', f'--reward_max_collision={1.0}', f'--list_reward={dict_list["list_reward"]}', '--factor_linear=0.25', f'--discount_factor={0.99}', f'--update_method={algo}'])
 
 
 #COMMAND_LIST = [

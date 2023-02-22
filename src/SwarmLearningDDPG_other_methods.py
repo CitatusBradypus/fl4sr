@@ -86,8 +86,8 @@ class SwarmLearningDDPG(IndividualDDPG):
             self.local_swarm_update()
         elif self.update_method == "simFL_update":
             self.simFL_update()
-        elif self.update_method == "MOON_update":
-            self.MOON_update()
+        elif self.update_method == "pair_update":
+            self.pair_update()
         else: raise ValueError(f"No update method '{self.update_method}' is defined.")
 
         return
@@ -121,10 +121,23 @@ class SwarmLearningDDPG(IndividualDDPG):
 
         self.agents_update_models(list_means)
 
-    def MOON_update(self):
-        
-        
+    def pair_update(self):
 
+        list_means = [ [] for _ in range(self.agents_count)]
+
+        for i in range(self.agents_count):
+            list_total_ids = [agent_id for agent_id in range(self.agent_count)]
+            list_total_ids.pop(i)
+            pair_id = random.choices(list_total_ids)
+            list_ids = [i, pair_id]
+            means = self.get_means(list_ids)
+            list_means[i] = means
+
+        self.update_counter += 1
+        self.update_counter = self.check_counter(self.update_counter)
+
+        self.agents_update_models(list_means)
+        
         
     def get_means(self,
         list_ids: list

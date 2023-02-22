@@ -6,6 +6,7 @@ sys.path.append(HOME + '/catkin_ws/src/fl4sr/src')
 import numpy as np
 import time
 import pickle
+import json
 from Enviroment_diff_reward import Enviroment
 from Enviroment_eval import Enviroment_eval
 from environment_real import RealEnviroment
@@ -33,7 +34,7 @@ class IndividualDDPG():
         discount_factor: float = 0.99,
         is_progress: bool = False,
         name=None,
-        model_name: str = "",
+        model_name: str = ""
         ) -> None:
         """Initialize class and whole experiment.
         Args:
@@ -156,6 +157,7 @@ class IndividualDDPG():
         """
         path_data = HOME + '/catkin_ws/src/fl4sr/src/data'
         name_run = self.NAME + '-' + time.strftime("%Y%m%d-%H%M%S")
+        self.name_run = name_run
         self.path_run = path_data + '/' + name_run
         self.path_weights = self.path_run + '/weights'
         self.path_log = self.path_run + '/log'
@@ -277,6 +279,7 @@ class IndividualDDPG():
         self.enviroment.reset()
         self.agents_save()
         self.data_save()
+        self.plot_save(self.path_log)
         return True, None, None
 
     def test(self
@@ -552,35 +555,47 @@ class IndividualDDPG():
         return
 
     def plot_save(self,
-        log_path:str=self.path_log
+        log_path:str
         ) -> None:
         """Save training curve plot of rewards.npy .
         Args:
             log_path (str): ... . Defaults to the path of rewards.npy saved by data_save.
         """
-        reward_path = os.path.join(self.path_log, "rewards.npy")
         figure, ax = plt.subplots(1, 1, figsize=(6, 6), dpi=300)
-        plt.xlabel('Episodes')
-        plt.ylabel('Update Period')
-        for i, uP in enumerate(list_uP):
-            values = da_reward_agent_mean.sel(update_period=uP, type_reward=reward_setting).to_numpy()
-                
-            #values_std = da_reward_agent_std.sel(update_period=uP, type_reward=reward_setting).to_numpy() 
-                
-            #max_val = array_sum.max()
-            print(f"shape of values: {np.array(values).shape}")
-            #print(f"shape of values_std: {np.array(values_std).shape}")
-            
-            axs[i].plot(list_time_steps, values.T)
-            #for k in range(len(list_algorithm)):
-                #print(values.T[k])
-                #print(values_std.T[k])
-                #axs[i].fill_between(list_time_steps, values[k]-values_std[k], values[k]+values_std[k], alpha=0.5)
-            axs[i].set_title(f'update_period: {uP}')
-            axs[i].set_xlabel('Episodes')
-            axs[i].set_ylabel('Rewards')
-            axs[i].set_ylim(0, 12)
-            axs[i].legend(list_algorithm)
+        #plt.xlabel('Episodes')
+        #plt.ylabel('Rewards')
+        values = self.average_rewards.T
+        num_time_steps = 125
+        list_time_steps = [i for i in range(num_time_steps)]
+        num_agents = 4
+        list_agents = [f"Robot {i}" for i in range(num_agents)]
+        #print(f"shape of values_std: {np.array(values_std).shape}")
+        ax.plot(list_time_steps, values.T)
+        #for k in range(len(list_algorithm)):
+        #print(values.T[k])
+        #print(values_std.T[k])
+        #axs[i].fill_between(list_time_steps, values[k]-values_std[k], values[k]+values_std[k], alpha=0.5)
+        ax.set_title(f'Experiment name: {self.name_run}')
+        ax.set_xlabel('Episodes')
+        ax.set_ylabel('Rewards')
+        ax.set_ylim(0, 15)
+        ax.legend(list_agents)
+        figure_name = self.name_run +'.png'
+        figure_path = os.path.join(self.path_log, figure_name)
+        figure.savefig(figure_path)
+
+    def args_save(self,
+        args
+        ) -> None:
+        """Save Argparse used for this experiment for post-experiment use.
+        """
+        args_file_name = "args.json"
+        args_path = os.path.join(self.path_log, args_file_name)
+        with open(args_path, 'w') as f:
+            json.dump(str(args), f)
+        return
+
+        
 
 
     def data_save_test(self, 

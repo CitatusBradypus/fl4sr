@@ -66,7 +66,8 @@ def experiment_learn(
         factor_linear: float,
         factor_angular: float,
         discount_factor: float,
-        is_progress: bool
+        is_progress: bool,
+        args
     ) -> bool:
     """Run learning experiment with specified values.
 
@@ -106,7 +107,9 @@ def experiment_learn(
     else:
         
         print(f"INSIDE Enviroment | INITIALISE DDPG")
-        DDPG = METHODS[method](EPISODE_COUNT, EPISODE_STEP_COUNT, LEARN_WORLD, LEARN_ENV, reward_goal, reward_collision, reward_progress, reward_max_collision, list_reward, factor_linear, factor_angular, discount_factor, method)
+        if method="SwarmDDPG":
+            DDPG = METHODS[method](EPISODE_COUNT, EPISODE_STEP_COUNT, LEARN_WORLD, LEARN_ENV, reward_goal, reward_collision, reward_progress, reward_max_collision, list_reward, factor_linear, factor_angular, discount_factor, method, update_method=args.update_method)
+        else: DDPG = METHODS[method](EPISODE_COUNT, EPISODE_STEP_COUNT, LEARN_WORLD, LEARN_ENV, reward_goal, reward_collision, reward_progress, reward_max_collision, list_reward, factor_linear, factor_angular, discount_factor, method)
         if update_step is None and update_period is not None:
             DDPG.EPISODE_UPDATE = True
             DDPG.TIME_UPDATE = update_period
@@ -114,6 +117,7 @@ def experiment_learn(
             DDPG.EPISODE_UPDATE = False
             DDPG.TIME_UPDATE = update_period
     success, _, _ = DDPG.run()
+    DDPG.args_save(args)
     #roscore_launch.shutdown()
     # RESULTS
     if not success:
@@ -343,7 +347,7 @@ if __name__ == '__main__':
     if args.mode == 'learn':
         print(f"It is in learning mode.")
         experiment_learn(args.method, args.restart, args.seed, args.updateStep, args.updatePeriod, args.reward_goal, args.reward_collision,\
-                         args.reward_progress, args.reward_max_collision, args.list_reward, args.factor_linear, args.factor_angular, args.discount_factor, args.is_progress)
+                         args.reward_progress, args.reward_max_collision, args.list_reward, args.factor_linear, args.factor_angular, args.discount_factor, args.is_progress, args)
     elif args.mode == 'real':
         print(f"It is in real mode")
         experiment_real(args.restart, args.seed, args.worldNumber, args.pathActor, args.pathCritic)

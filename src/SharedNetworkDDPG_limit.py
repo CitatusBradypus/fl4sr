@@ -6,7 +6,6 @@ sys.path.append(HOME + '/catkin_ws/src/fl4sr/src')
 from IndividualDDPG_limit import IndividualDDPG
 from worlds import World
 from DDPG_limit import DDPG
-from buffers import BasicBuffer, Transition
 import numpy as np
 from models import Actor, Critic
 from buffers import BasicBuffer, PrioritizedExperienceReplayBuffer, VectorTransitions, Transition
