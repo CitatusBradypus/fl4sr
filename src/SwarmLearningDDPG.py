@@ -12,6 +12,7 @@ from worlds import World
 from DDPG_limit import DDPG
 from buffers import BasicBuffer, Transition
 import numpy as np
+import random
 
 
 Means = namedtuple('Averages', 'aw, ab, cw, cb')
@@ -30,7 +31,7 @@ class SwarmLearningDDPG(IndividualDDPG):
         world: World,
         env = 'Enviroment',
         reward_goal: float = 100.0,
-        reward_collision: float = -10.0,
+        reward_collision: float = -30.0,
         reward_progress: float = 40.0,
         reward_max_collision: float = 3.0,
         list_reward: int = 1,
@@ -38,7 +39,8 @@ class SwarmLearningDDPG(IndividualDDPG):
         factor_angular: float = 1.0,
         discount_factor: float = 0.99,
         is_progress: bool = False,
-        name=None, 
+        name=None,
+        update_method: str = "local_update"
         ) -> None:
         """Initialize
 
@@ -58,7 +60,10 @@ class SwarmLearningDDPG(IndividualDDPG):
         # averaging params
         self.TAU = 0.5
 
-        # simFL counter [0-4]
+        # Update method
+        self.update_method = update_method
+
+        # round counter [0-4]
         self.update_counter = 0
         return
 
@@ -78,7 +83,14 @@ class SwarmLearningDDPG(IndividualDDPG):
         Args:
             reward (np.ndarray): average rewards obtained by agents between updates
         """
-        self.local_swarm_update()
+        if self.update_method == "local_update":
+            self.local_swarm_update()
+        elif self.update_method == "round_update":
+            self.round_update()
+        elif self.update_method == "pair_update":
+            self.pair_update()
+        else: raise ValueError(f"No update method '{self.update_method}' is defined.")
+
         return
 
     def local_swarm_update(self):
@@ -96,7 +108,7 @@ class SwarmLearningDDPG(IndividualDDPG):
 
         self.agents_update_models(list_means)
 
-    def simFL_update(self):
+    def round_update(self):
         
         list_means = [ [] for _ in range(self.agents_count)]
 
@@ -110,6 +122,20 @@ class SwarmLearningDDPG(IndividualDDPG):
 
         self.agents_update_models(list_means)
 
+    def pair_update(self):
+
+        list_means = [ [] for _ in range(self.agents_count)]
+
+        for i in range(self.agents_count):
+            list_total_ids = [agent_id for agent_id in range(self.agents_count)]
+            list_total_ids.pop(i)
+            pair_id = random.choices(list_total_ids)
+            list_ids = [i, pair_id[0]]
+            means = self.get_means(list_ids)
+            list_means[i] = means
+
+        self.agents_update_models(list_means)
+        
         
     def get_means(self,
         list_ids: list

@@ -17,10 +17,10 @@ sys.path.append(HOME + '/catkin_ws/src/fl4sr/src')
 
 dict_reward = {'reward_goal': [100.0], 'reward_collision': [-30.0], 'reward_progress': [40.0]}
 dict_list = {'list_reward': 1}
-dict_update_period = {'updatePeriod': [1, 3, 5]}
-dict_seed = {'seed': [101,102,103]}
+dict_update_period = {'updatePeriod': [1, 3]}
+dict_seed = {'seed': [301,302,303]}
 #dict_factor = {'factor_angular': [1.0]}
-dict_algorithms = {'algorithms': ['IDDPG','SNDDPG','FLDDPG']}
+dict_algorithms = {'algorithms': ['IDDPG','FLDDPG']}
 #dict_reward_max_collision = {'reward_max_collision': [1.0]}
 
 COMMAND_LIST = []

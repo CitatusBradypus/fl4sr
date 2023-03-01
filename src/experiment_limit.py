@@ -107,7 +107,7 @@ def experiment_learn(
     else:
         
         print(f"INSIDE Enviroment | INITIALISE DDPG")
-        if method="SwarmDDPG":
+        if method=="SwarmDDPG":
             DDPG = METHODS[method](EPISODE_COUNT, EPISODE_STEP_COUNT, LEARN_WORLD, LEARN_ENV, reward_goal, reward_collision, reward_progress, reward_max_collision, list_reward, factor_linear, factor_angular, discount_factor, method, update_method=args.update_method)
         else: DDPG = METHODS[method](EPISODE_COUNT, EPISODE_STEP_COUNT, LEARN_WORLD, LEARN_ENV, reward_goal, reward_collision, reward_progress, reward_max_collision, list_reward, factor_linear, factor_angular, discount_factor, method)
         if update_step is None and update_period is not None:
@@ -134,31 +134,46 @@ def experiment_learn(
 def experiment_test(
         restart: bool,
         seed: int,
+        update_step: int,
+        update_period: int,
+        reward_goal: float,
+        reward_collision: float,
+        reward_progress: float,
+        reward_max_collision: float,
+        list_reward: int,
+        factor_linear: float,
+        factor_angular: float,
+        discount_factor: float,
+        is_progress: bool,
         world_number: int,
+        model_name: str, 
+        env_name: str,
         path_actor: str,
-        path_critic: str
+        path_critic: str,
+        args
     ) -> bool:
     """Run evaluation experiment with specified values.
-
     Returns:
         bool: If program finished correctly.
     """
     # ROS
     # launch roscore
-    uuid = roslaunch.rlutil.get_or_generate_uuid(options_runid=None, options_wait_for_master=False)
-    roslaunch.configure_logging(uuid)
-    roscore_launch = roslaunch.parent.ROSLaunchParent(uuid, roslaunch_files=[], is_core=True)
-    roscore_launch.start()
+    # os.environ['ROS_MASTER_URI'] = f"http://192.168.210.127:11351/"
+    # #os.environ['GAZEBO_MASTER_URI'] = f"http://192.168.210.127:11371/"
+    # uuid = roslaunch.rlutil.get_or_generate_uuid(options_runid=None, options_wait_for_master=False)
+    # roslaunch.configure_logging(uuid)
+    # roscore_launch = roslaunch.parent.ROSLaunchParent(uuid, roslaunch_files=[], is_core=True)
+    # roscore_launch.start()
     # launch simulation
     print('Simulation: Ready to start!')
-    uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
-    roslaunch.configure_logging(uuid)
-    world_launch = roslaunch.parent.ROSLaunchParent(uuid, [HOME + '/catkin_ws/src/fl4sr/launch/fl4sr_real_8.launch'])
-    world_launch.start()
-    time.sleep(5)
+    # uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
+    # roslaunch.configure_logging(uuid)
+    # world_launch = roslaunch.parent.ROSLaunchParent(uuid, [HOME + '/catkin_ws/src/fl4sr/launch/fl4sr_real_8_diff_reward.launch'])
+    # world_launch.start()
+    # time.sleep(5)
     # SETTINGS
-    EPISODE_COUNT = 4
-    robot_alives = 8
+    EPISODE_COUNT = 20
+    robot_alives = 4
     # set seeds
     if seed is not None:
         random.seed(seed)
@@ -176,22 +191,28 @@ def experiment_test(
         EVAL_WORLD = REAL_SIM_WORLD
     elif world_number == 100:
         EVAL_WORLD = REAL_WORLD_8
+    elif world_number == 101:
+        EVAL_WORLD = REAL_WORLD_4_diff_reward
     # set env
-    EVAL_ENV = 'Enviroment'
+    EVAL_ENV = env_name
     # RUN
     print('Simulation: Ready to run!')
+    print(f"restart: {restart}")
+    restart = False
     if restart:
         with open('experiment.pickle', 'rb') as f:
             DDPG = pickle.load(f)
+
         DDPG.init_enviroment()
     else:
-        DDPG = IndividualDDPG(EPISODE_COUNT, EPISODE_STEP_COUNT, EVAL_WORLD, EVAL_ENV,'EVAL-{}'.format(world_number))
+        print(f"model_name: {model_name}")
+        DDPG = IndividualDDPG(EPISODE_COUNT, EPISODE_STEP_COUNT, EVAL_WORLD, EVAL_ENV,name='EVAL-{}'.format(world_number), model_name=model_name)
         DDPG.agents_load(
             [path_actor for _ in range(robot_alives)],
             [path_critic for _ in range(robot_alives)]
         ) 
     success, _, _ = DDPG.test()
-    roscore_launch.shutdown()
+    # roscore_launch.shutdown()
     # RESULTS
     if not success:
         DDPG.terminate_enviroment()
@@ -269,6 +290,15 @@ if __name__ == '__main__':
         default='real',
         help='If method is supposted to learn, test in simulation or real-robot')
     parser.add_argument(
+        '--model_name',
+        type=str,
+        help='Name of the model to evaluates.')
+
+    parser.add_argument(
+        '--env_name',
+        type=str,
+        help='Name of the environment file.')
+    parser.add_argument(
         '--worldNumber', 
         type=int,
         help='Specifier for world type.')
@@ -291,39 +321,48 @@ if __name__ == '__main__':
         help='Seed for random generators.')
     parser.add_argument(
         '--updateStep',
+        default=None,
         type=bool,
         help='If the federated learning is done in episodes.')
     parser.add_argument(
         '--updatePeriod',
+        default=1,
         type=int,
         help='Period of federated update.')
     parser.add_argument(
         '--reward_goal',
+        default=100.0,
         type=float,
         help='Reward for reaching a goal.')
     parser.add_argument(
         '--reward_collision',
+        default=-30.0,
         type=float,
         help='Reward for collision.')
     parser.add_argument(
         '--reward_progress',
+        default=40.0,
         type=float,
         help='Reward for the progress.')
     parser.add_argument(
         '--reward_max_collision',
+        default=-30.0,
         type=float,
         help='Reward for MAx collision dense.')
     parser.add_argument(
         '--list_reward',
+        default=1,
         type=int,
         help='number for the list of reward.')
     
     parser.add_argument(
         '--factor_linear',
+        default=1.0,
         type=float,
         help='Scaling factor for the linear velocity.')
     parser.add_argument(
         '--factor_angular',
+        default=0.5,
         type=float,
         help='Scaling factor for the angular velocity.')
     parser.add_argument(
@@ -332,12 +371,17 @@ if __name__ == '__main__':
         help='discount_factor')   
     parser.add_argument(
         '--is_progress',
+        default=False,
         type=bool,
         help='Determining the progress reward using step size or just using distances')
     parser.add_argument(
         'method', 
         type=str,
         help='Name of used method.')
+    parser.add_argument(
+        '--update_method', 
+        type=str,
+        help='Updated Method for SwarmDDPG algorithm (1) local_update, (2) SimFL_update, (3) pair_update.')
     args = parser.parse_args()
     
     # ARGUMENTS
@@ -353,5 +397,9 @@ if __name__ == '__main__':
         experiment_real(args.restart, args.seed, args.worldNumber, args.pathActor, args.pathCritic)
     elif args.mode == 'eval':
         print(f"It is in eval mode")
-        experiment_test(args.restart, args.seed, args.worldNumber, args.pathActor, args.pathCritic)
+        experiment_test(args.restart, args.seed, args.updateStep, args.updatePeriod, args.reward_goal,
+                        args.reward_collision, args.reward_progress, args.reward_max_collision,
+                        args.list_reward, args.factor_linear,
+                        args.factor_angular, args.discount_factor,
+                        args.is_progress, args.worldNumber, args.model_name, args.env_name, args.pathActor, args.pathCritic, args)
     else: raise Exception('Wrong mode!')

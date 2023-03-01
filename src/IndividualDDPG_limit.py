@@ -7,6 +7,7 @@ import numpy as np
 import time
 import pickle
 import json
+import matplotlib.pyplot as plt
 from Enviroment_diff_reward import Enviroment
 from Enviroment_eval import Enviroment_eval
 from environment_real import RealEnviroment
@@ -25,7 +26,7 @@ class IndividualDDPG():
         world: World,  
         env = 'Enviroment', 
         reward_goal: float = 100.0,
-        reward_collision: float = -10.0,
+        reward_collision: float = -30.0,
         reward_progress: float = 40.0,
         reward_max_collision: float = 3.0,
         list_reward: int = 1,
@@ -70,7 +71,7 @@ class IndividualDDPG():
         self.factor_linear= factor_linear
         self.factor_angular= factor_angular
         self.is_progress=is_progress
-        print(f"discount factor: {discount_factor}")
+        self.model_name = model_name
         self.discount_factor = discount_factor
         # init enviroment and dimensions
         self.world = world
@@ -84,10 +85,13 @@ class IndividualDDPG():
         self.agents = self.init_agents()
         # loggers
         if not hasattr(self, 'NAME'):
-            if name is not None:
-                self.NAME = name
+            if not model_name is "":
+                self.NAME = model_name
             else:
-                self.NAME = 'IDDPG'
+                if name is not None:
+                    self.NAME = name
+                else:
+                    self.NAME = 'IDDPG'
         print(f"NAME = {self.NAME}")
         self.init_data()
         # debugging
@@ -97,8 +101,7 @@ class IndividualDDPG():
         # paths
         self.init_paths()
 
-        # Model name
-        self.model_name = model_name
+        
 
     
 
@@ -121,7 +124,6 @@ class IndividualDDPG():
         self.reward_collision,
         self.reward_progress,
         self.reward_max_collision,
-        self.list_reward,
         self.factor_linear,
         self.factor_angular, self.is_progress)
         elif self.env == 'RealEnviroment':
@@ -156,7 +158,10 @@ class IndividualDDPG():
         """Initializes and creates file system for saving obtained information.
         """
         path_data = HOME + '/catkin_ws/src/fl4sr/src/data'
-        name_run = self.NAME + '-' + time.strftime("%Y%m%d-%H%M%S")
+        if not self.model_name is "":
+            name_run = self.NAME
+        else:
+            name_run = self.NAME + '-' + time.strftime("%Y%m%d-%H%M%S")
         self.name_run = name_run
         self.path_run = path_data + '/' + name_run
         self.path_weights = self.path_run + '/weights'
@@ -318,7 +323,7 @@ class IndividualDDPG():
             print('Robots succeded once: {}'.format(robots_succeeded_once))
             self.data_save_test(episode)
         self.enviroment.reset()
-        self.data_collect_eval_list()
+        self.data_collect_eval_list(self.enviroment.list_robot_succeeded, self.enviroment.list_arrival_time, self.enviroment.list_traj_eff)
         self.data_save_eval_list()
         return True, None, None
 
@@ -565,7 +570,7 @@ class IndividualDDPG():
         #plt.xlabel('Episodes')
         #plt.ylabel('Rewards')
         values = self.average_rewards.T
-        num_time_steps = 125
+        num_time_steps = values.T.shape[0]
         list_time_steps = [i for i in range(num_time_steps)]
         num_agents = 4
         list_agents = [f"Robot {i}" for i in range(num_agents)]

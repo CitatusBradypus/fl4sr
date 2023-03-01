@@ -49,6 +49,7 @@ class Enviroment_eval():
         self.MAXIMUM_SCAN_RANGE = 0.8
         self.MINIMUM_SCAN_RANGE = 0.15
         self.GOAL_RANGE = 0.5
+        print(f"reward_goal: {reward_goal}")
         self.REWARD_GOAL = reward_goal
         self.REWARD_COLLISION_FIX_RATE = 0.25
         self.REWARD_COLLISION_FIX = reward_collision * self.REWARD_COLLISION_FIX_RATE
@@ -72,7 +73,7 @@ class Enviroment_eval():
 
         # Evaluation logging related
         self.model_name = model_name
-        self.num_runs = num_runs
+        self.num_runs = 100 # arbitrary number
         self.count_exp = 0 
 
         # simulation services
@@ -150,10 +151,10 @@ class Enviroment_eval():
         self.robot_finished = np.zeros((self.robot_count), dtype=bool)
         self.robot_succeeded = np.zeros((self.robot_count), dtype=bool)
         self.robot_already_succeeded = np.zeros((self.robot_count), dtype=bool)
-        self.start_time = np.zero((self.robot_count), dtype=float)
-        self.arrival_time = np.zero((self.robot_count), dtype=float)
+        self.start_time = np.zeros((self.robot_count), dtype=float)
+        self.arrival_time = np.zeros((self.robot_count), dtype=float)
         self.dict_traj = {'x': [], 'y': [], 'theta': []}
-        self.traj_eff = np.zero((self.robot_count), dtype=float)
+        self.traj_eff = np.zeros((self.robot_count), dtype=float)
 
         
         # list to attend the results for full experiments.
@@ -276,9 +277,9 @@ class Enviroment_eval():
         self.robot_finished = np.zeros((self.robot_count), dtype=bool)
         self.robot_succeeded = np.zeros((self.robot_count), dtype=bool)
         self.robot_already_succeeded = np.zeros((self.robot_count), dtype=bool)
-        self.start_time = np.zero((self.robot_count), dtype=float)
-        self.arrival_time = np.zero((self.robot_count), dtype=float)
-        self.traj_eff = np.zero((self.robot_count), dtype=float)
+        self.start_time = np.zeros((self.robot_count), dtype=float)
+        self.arrival_time = np.zeros((self.robot_count), dtype=float)
+        self.traj_eff = np.zeros((self.robot_count), dtype=float)
 
         # Count up
         self.count_exp +=1
@@ -395,7 +396,7 @@ class Enviroment_eval():
         self.robot_succeeded[robot_target_distances < self.GOAL_RANGE] = True
         # collision reward
         reward_collision = self.calculate_reward_collision(robot_collisions, id_collisions, robot_lasers)
-        print(f"REWARD COLLISION: {reward_collision}")
+        # print(f"REWARD COLLISION: {reward_collision}")
         #reward_collision[np.where(robot_collisions)] = self.REWARD_COLLISION
         reward_time = self.REWARD_TIME
         self.robot_finished[np.where(robot_collisions)] = True
@@ -438,10 +439,10 @@ class Enviroment_eval():
 
         if all(self.robot_finished) == True:
             self.reset(robot_id=-1)
-        # data = {}
-        # data['x'] = x
-        # data['y'] = y
-        # data['theta'] = theta
+        data = {}
+        data['x'] = x
+        data['y'] = y
+        data['theta'] = theta
 
         return states, rewards, robot_finished, self.robot_succeeded, False, data
 
@@ -450,7 +451,8 @@ class Enviroment_eval():
         list_x = dict_traj['x']
         list_y = dict_traj['y']
         total_distance = 0.0
-        for i in range(len(list_x)+1):
+        
+        for i in range(len(list_x)-1):
             total_distance += sqrt((list_x[i][agent_id]-list_x[i+1][agent_id])**2 + (list_y[i][agent_id]-list_y[i+1][agent_id])**2)
         ref_distance = sqrt((list_x[0][agent_id]-list_x[-1][agent_id])**2 + (list_y[0][agent_id]-list_y[-1][agent_id])**2)
         traj_eff = ref_distance/total_distance
@@ -668,7 +670,6 @@ class Enviroment_eval():
         Returns:
             np.ndarray: Starting states.
         """
-        print(f"cur start")
         model_state = self.position_info_getter.get_msg()
         robot_indexes = self.get_robot_indexes_from_model_state(model_state)
         x, y, theta, _ = self.get_positions_from_model_state(model_state, 
@@ -701,5 +702,4 @@ class Enviroment_eval():
                            #s_actions_linear, s_actions_angular, 
                            s_robot_target_distances, s_robot_target_angle_difference))
         assert states.shape == (self.robot_count, self.observation_dimension), 'Wrong states dimension!'
-        print(f"cur end")
         return states

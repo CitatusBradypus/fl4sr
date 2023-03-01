@@ -110,11 +110,12 @@ def experiment_test(
         restart: bool,
         seed: int,
         world_number: int,
+        model_name: str, 
+        env_name: str,
         path_actor: str,
         path_critic: str
     ) -> bool:
     """Run evaluation experiment with specified values.
-
     Returns:
         bool: If program finished correctly.
     """
@@ -128,11 +129,12 @@ def experiment_test(
     print('Simulation: Ready to start!')
     uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
     roslaunch.configure_logging(uuid)
-    world_launch = roslaunch.parent.ROSLaunchParent(uuid, [HOME + '/catkin_ws/src/fl4sr/launch/fl4sr_eval.launch'])
+    world_launch = roslaunch.parent.ROSLaunchParent(uuid, [HOME + '/catkin_ws/src/fl4sr/launch/fl4sr_real_8_diff_reward.launch'])
     world_launch.start()
     time.sleep(5)
     # SETTINGS
-    EPISODE_COUNT = 4
+    EPISODE_COUNT = 10
+    robot_alives = 4
     # set seeds
     if seed is not None:
         random.seed(seed)
@@ -146,6 +148,14 @@ def experiment_test(
         EVAL_WORLD = EVAL_WORLD_2
     elif world_number == 3:
         EVAL_WORLD = EVAL_WORLD_3
+    elif world_number == 99:
+        EVAL_WORLD = REAL_SIM_WORLD
+    elif world_number == 100:
+        EVAL_WORLD = REAL_WORLD_8
+    elif world_number == 101:
+        EVAL_WORLD = REAL_WORLD_4_diff_reward
+    # set env
+    EVAL_ENV = env_name
     # RUN
     print('Simulation: Ready to run!')
     if restart:
@@ -153,10 +163,10 @@ def experiment_test(
             DDPG = pickle.load(f)
         DDPG.init_enviroment()
     else:
-        DDPG = IndividualDDPG(EPISODE_COUNT, EPISODE_STEP_COUNT, EVAL_WORLD, 'EVAL-{}'.format(world_number))
+        DDPG = IndividualDDPG(EPISODE_COUNT, EPISODE_STEP_COUNT, EVAL_WORLD, model_name, EVAL_ENV,'EVAL-{}'.format(world_number))
         DDPG.agents_load(
-            [path_actor],
-            [path_critic]
+            [path_actor for _ in range(robot_alives)],
+            [path_critic for _ in range(robot_alives)]
         ) 
     success, _, _ = DDPG.test()
     roscore_launch.shutdown()
@@ -170,6 +180,7 @@ def experiment_test(
         with open('main.info', 'w') as f:
             f.write('RESTART')
     return success
+
 
 if __name__ == '__main__':
     # Experiments are defined by changing parameters in this file 
@@ -197,6 +208,15 @@ if __name__ == '__main__':
         '--pathCritic', 
         type=str,
         help='Path to critic.')
+    parser.add_argument(
+        '--model_name',
+        type=str,
+        help='Name of the model to evaluates.')
+
+    parser.add_argument(
+        '--env_name',
+        type=str,
+        help='Name of the environment file.')
     parser.add_argument(
         'method', 
         type=str,
@@ -226,4 +246,4 @@ if __name__ == '__main__':
     if args.learn:
         experiment_learn(args.method, args.restart, args.seed, args.updateStep, args.updatePeriod)
     else:
-        experiment_test(args.restart, args.seed, args.worldNumber, args.pathActor, args.pathCritic)
+        experiment_test(args.restart, args.seed, args.worldNumber, args.model_name, args.env_name, args.pathActor, args.pathCritic)

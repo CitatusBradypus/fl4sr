@@ -30,7 +30,7 @@ class FederatedLearningDDPG(IndividualDDPG):
         world: World,
         env = 'Enviroment',
         reward_goal: float = 100.0,
-        reward_collision: float = -10.0,
+        reward_collision: float = -30.0,
         reward_progress: float = 40.0,
         reward_max_collision: float = 3.0,
         list_reward: int = 1,
