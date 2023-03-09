@@ -39,7 +39,7 @@ def plot_reward(data_reward: np.array,
     ax.set_title(f'Experiment name: {exp_name}')
     ax.set_xlabel('Episodes')
     ax.set_ylabel('Rewards')
-    ax.set_ylim(0, 15)
+    ax.set_ylim(-5, 5)
     ax.legend(list_agents)
 
     plot_name = exp_name + '.png'
@@ -75,7 +75,7 @@ def plot_reward_algo_up(avg_reward: np.array,
     ax.set_title(f'Experiment name: {exp_name}')
     ax.set_xlabel('Episodes')
     ax.set_ylabel('Rewards')
-    ax.set_ylim(0, 15)
+    ax.set_ylim(0, 7)
     ax.legend(list_agents)
 
     plot_name = exp_name + '.png'
@@ -103,7 +103,7 @@ def plot_total_reward(avg_reward: np.array,
     ax.set_title(f'Experiment name: {exp_name}')
     ax.set_xlabel('Episodes')
     ax.set_ylabel('Rewards')
-    ax.set_ylim(0, 15)
+    ax.set_ylim(-5, 5)
     ax.legend(list_algos)
 
     plot_name = exp_name + '.png'
@@ -360,12 +360,13 @@ if __name__=="__main__":
                       'update_period': [1,3,5],
                       'random_seed': [101, 102, 103]}
 
-    generate_subdirs(path_parent, dict_key_value)
-    dict_exp = match_exp_setting(path_parent)
-    print(f"dict_exp: {dict_exp}")
+    
     save_individual_reward_plot(path_parent)
-    save_averaged_reward_plot(path_parent, dict_exp)
-    save_total_averaged_reward_plot(path_parent, dict_exp, dict_algorithm_up)
+    # generate_subdirs(path_parent, dict_key_value)
+    # dict_exp = match_exp_setting(path_parent)
+    # print(f"dict_exp: {dict_exp}")
+    # save_averaged_reward_plot(path_parent, dict_exp)
+    # save_total_averaged_reward_plot(path_parent, dict_exp, dict_algorithm_up)
     
     
 

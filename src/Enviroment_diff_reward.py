@@ -45,11 +45,11 @@ class Enviroment():
         """
         print(f"INSIDE Enviroment | world: {world}, reward_goal: {reward_goal}, reward_collision: {reward_collision}, reward_progress: {reward_progress}, factor_linear: {factor_linear}, factor_angular: {factor_angular}, is_progress: {is_progress}")
         # params        
-        self.COLLISION_RANGE = 0.25
-        self.MAXIMUM_SCAN_RANGE = 0.8
-        self.MINIMUM_SCAN_RANGE = 0.15
+        self.COLLISION_RANGE = 0.20
+        self.MAXIMUM_SCAN_RANGE = 1.0
+        self.MINIMUM_SCAN_RANGE = 0.12
         self.GOAL_RANGE = 0.5
-        print(f"list_reward: {list_reward}")
+        #print(f"list_reward: {list_reward}")
         if list_reward == 1:
             self.ARR_REWARD_GOAL = np.array([100, 100, 100, 100])
             self.ARR_REWARD_COLLISION = np.array([-20, -20, -20, -20])
@@ -148,7 +148,7 @@ class Enviroment():
         self.command_empty = Twist()
         # basic settings
         self.node = rospy.init_node('turtlebot_env', anonymous=True)
-        self.rate = rospy.Rate(100)
+        self.rate = rospy.Rate(200)
         self.laser_count = 24
         
         self.observation_dimension = self.laser_count + 2
@@ -172,6 +172,7 @@ class Enviroment():
                               LaserScan, 
                               self.laser_info_getter[id]) 
             for id, rid in enumerate(self.robot_indexes)]
+        self.laser_buffer = [[] for i in range(self.robot_count)]
 
         # various simulation outcomes
         self.robot_finished = np.zeros((self.robot_count), dtype=bool)
@@ -182,6 +183,7 @@ class Enviroment():
             self.x_targets, 
             self.y_starts, 
             self.y_targets)
+        
         return
 
     def check_outside_arena(self,
@@ -209,6 +211,9 @@ class Enviroment():
         # wait for services
         rospy.wait_for_service('/gazebo/reset_simulation')
         rospy.wait_for_service('/gazebo/set_model_state')
+
+        # Reset laser_buffer (for median filter)
+        self.laser_buffer = [[] for i in range(self.robot_count)]
         # set model states or reset world
         if robot_id == -1:
             try:
@@ -301,22 +306,40 @@ class Enviroment():
         assert len(actions) == self.robot_count, 'Wrong actions dimension!'
         # generate twists, also get separate values of actions
         twists = [self.action_to_twist(action) for action in actions]
+        #forward_vel = Twist()
+        #forward_vel.linear.x = 0.25
+        #forward_vel.angular.z = 0.0
+        #twists = [forward_vel for i in range(self.robot_count)]
         actions_linear_x = actions.T[1]
         actions_angular_z = actions.T[0]
         # publish twists
-        # self.pause()
+        self.pause()
         for i in range(self.robot_count):
             self.publisher_turtlebots[i].publish(twists[i])
             #self.publisher_turtlebots[i].publish(Twist())
         # start of timing !!! changed to rospy time !!!
-        start_time = rospy.get_time()
+        
         running_time = 0
         # move robots with action for time_step        
+        
+        model_state_before_time_step = self.position_info_getter.get_msg()
+        robot_indexes_b = self.get_robot_indexes_from_model_state(model_state_before_time_step)
+        x_b, y_b, _, _ = self.get_positions_from_model_state(model_state_before_time_step, robot_indexes_b)
+        start_time = rospy.get_time()
+        start_time_b = rospy.get_time()
         self.unpause()
         while(running_time < time_step):
             self.rate.sleep()
             running_time = rospy.get_time() - start_time
         self.pause()
+        end_time_a = rospy.get_time()
+        #print(f"Actual time taken: {end_time_a - start_time_b}")
+        model_state_after_time_step = self.position_info_getter.get_msg()
+        robot_indexes_a = self.get_robot_indexes_from_model_state(model_state_after_time_step)
+        x_a, y_a, _, _ = self.get_positions_from_model_state(model_state_after_time_step, robot_indexes_a)
+        robot_dist_time_step = self.get_distance(x_a, x_b,
+                                                 y_a, y_b)
+        #print(f"Traversed Distances for each time step: {robot_dist_time_step}")
         # send empty commands to robots
         # self.unpause()
         # read current positions of robots
@@ -339,7 +362,14 @@ class Enviroment():
         robot_target_angle = robot_target_angle % (2 * np.pi)
         robot_target_angle_difference = (robot_target_angle - theta - np.pi) % (2 * np.pi) - np.pi
         # get current laser measurements
-        robot_lasers, robot_collisions, id_collisions = self.get_robot_lasers_collisions()
+        for _ in range(5):
+            scan = self.laser_info_getter[i].get_msg()
+            for i in range(self.robot_count):
+                self.laser_buffer[i].append(scan.ranges[i])
+
+        median_scan_ranges = apply_median_filter(self.laser_buffer)
+        robot_lasers, robot_collisions, id_collisions = self.get_robot_lasers_collisions(median_scan_ranges)
+        self.laser_buffer = [[] for i in range(self.robot_count)]
 
         # create state array 
         # = lasers (24), 
@@ -392,7 +422,14 @@ class Enviroment():
         reward_time = self.REWARD_TIME
         self.robot_finished[np.where(robot_collisions)] = True
         # total reward
-        rewards = reward_distance + reward_goal + reward_collision + reward_time
+        rewards = reward_distance + reward_goal #+ #reward_collision + reward_time
+        #print(f"robot_collisions: {robot_collisions}")
+        #print(f"robot_lasers: {robot_lasers}")
+        print(f"rewards: {rewards}")
+        print(f"reward_distance: {reward_distance}")
+        print(f"reward_collision: {reward_collision}")
+        #print(f"reward_time: {reward_time}")
+        print(f"reward_goal: {reward_goal}")
         
         # set current target distance as previous
         distances_help = self.robot_target_distances_previous.copy()
@@ -575,7 +612,14 @@ class Enviroment():
         normalised_value = self.MAXIMUM_SCAN_RANGE - (number - self.MINIMUM_SCAN_RANGE) * (self.MAXIMUM_SCAN_RANGE / (self.MAXIMUM_SCAN_RANGE - self.MINIMUM_SCAN_RANGE))
         return normalised_value
 
+    def apply_median_filter(self,
+        laser_buffer: list
+        ) -> list:
+        list_median_scan_ranges = np.median(laser_buffer, axis=1)
+        return list_median_scan_ranges
+
     def get_robot_lasers_collisions(self,
+        median_scan_ranges: list,
         ) -> tuple:
         """Returns values of all robots lasers and if robots collided.
 
@@ -588,9 +632,10 @@ class Enviroment():
         # each robot
         for i in range(self.robot_count):
             lasers.append([])
-            scan = self.laser_info_getter[i].get_msg()
+            #scan = self.laser_info_getter[i].get_msg()
+            #print(f"scan.ranges: {scan.ranges}")
             # each laser in scan
-            for j in range(len(scan.ranges)):
+            for j in range(len(median_scan_ranges)):
 
                 # if j == 0:
                 #     pass
@@ -603,7 +648,7 @@ class Enviroment():
                 elif scan.ranges[j] > self.MAXIMUM_SCAN_RANGE:
                     lasers[i][j] = self.normalise_scan(self.MAXIMUM_SCAN_RANGE)
                 elif scan.ranges[j] < self.MINIMUM_SCAN_RANGE:
-                    lasers[i][j] = self.normalise_scan(self.MINIMUM_SCAN_RANGE)
+                    lasers[i][j] = self.normalise_scan(self.MAXIMUM_SCAN_RANGE)
                 else:
                     lasers[i][j] = self.normalise_scan(scan.ranges[j])
             #lasers_deque = deque(lasers[i])

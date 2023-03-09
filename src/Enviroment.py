@@ -41,6 +41,19 @@ class Enviroment():
         self.REWARD_GOAL = 100.0
         self.REWARD_COLLISION = -10.0
         self.PROGRESS_REWARD_FACTOR = 40.0
+
+        self.REWARD_COLLISION_FIX_RATE = 0.25
+        self.REWARD_COLLISION_FIX = reward_collision * self.REWARD_COLLISION_FIX_RATE
+        self.REWARD_COLLISION_VARIABLE = reward_collision * (1 - self.REWARD_COLLISION_FIX_RATE)
+        self.REWARD_COLLISION = self.REWARD_COLLISION_FIX + self.REWARD_COLLISION_VARIABLE
+        self.REWARD_TIME = -0.3
+        self.PROGRESS_REWARD_FACTOR = reward_progress
+        self.FACTOR_LINEAR = factor_linear
+        self.FACTOR_ANGULAR = 1.0#factor_angular
+        self.FACTOR_NORMALISE_DISTANCE = 5.0
+        self.FACTOR_NORMALISE_ANGLE = np.pi
+        self.REWARD_MAX_COLLISION_DENSE = reward_max_collision
+        self.LAMBDA_COLLISION = np.log(self.REWARD_MAX_COLLISION_DENSE + 1)
         # simulation services
         # rospy.wait_for_service('/gazebo/reset_simulation')
         # self.reset_simulation = rospy.ServiceProxy('/gazebo/reset_simulation', Empty)
@@ -187,7 +200,7 @@ class Enviroment():
     
     def step(self,
         actions: np.ndarray,
-        time_step: float=0.1
+        time_step: float=0.3
         ) -> tuple:
         """Perform one step of simulations using given actions and lasting for 
         set time.
@@ -279,8 +292,15 @@ class Enviroment():
         reward_collision = np.zeros(self.robot_count)
         reward_collision[np.where(robot_collisions)] = self.REWARD_COLLISION
         self.robot_finished[np.where(robot_collisions)] = True
+
+        reward_time = self.REWARD_TIME
         # total reward
-        rewards = reward_distance + reward_goal + reward_collision
+        rewards = reward_distance + reward_goal + reward_collision + reward_time 
+        print(f"rewards: {rewards}")
+        print(f"reward_distance: {reward_distance}")
+        print(f"reward_collision: {reward_collision}")
+        #print(f"reward_time: {reward_time}")
+        print(f"reward_goal: {reward_goal}")
         
         # set current target distance as previous
         distances_help = self.robot_target_distances_previous.copy()
@@ -302,6 +322,16 @@ class Enviroment():
 
         return states, rewards, robot_finished, self.robot_succeeded, False, data
 
+    def calculate_reward_collision(self, robot_collisions, id_collisions, robot_lasers):
+        # 1. Reward for the collision event
+        reward_collision = np.zeros(self.robot_count)
+        for idx in np.where(robot_collisions)[0]:
+            reward_collision[idx] = (self.REWARD_COLLISION_VARIABLE * abs(np.cos(id_collisions[idx]/self.laser_count)) - self.REWARD_COLLISION_FIX)
+        # 2. Reward for the dense collision reward - suppresses more progressive reward
+        for jdx in range(self.robot_count):
+            reward_collision[jdx] += -(np.exp(robot_lasers[jdx][id_collisions[jdx]] * self.LAMBDA_COLLISION)) + 1
+        
+        return reward_collision
     def create_model_state(self, 
         name: str,
         pose_x: float,
