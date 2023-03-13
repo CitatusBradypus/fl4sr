@@ -6,9 +6,7 @@ sys.path.append(HOME + '/catkin_ws/src/fl4sr/src')
 import numpy as np
 import time
 import pickle
-from Enviroment_diff_reward import Enviroment
-from Enviroment_eval import Enviroment_eval
-from environment_real import RealEnviroment
+from environment_swarm import Enviroment
 from worlds import World
 from DDPG import DDPG
 from buffers import BasicBuffer, PrioritizedExperienceReplayBuffer, Transition

@@ -16,6 +16,7 @@ from IndividualDDPG_real import IndividualDDPG_real
 from SharedNetworkDDPG import SharedNetworkDDPG
 from SharedExperienceDDPG import SharedExperienceDDPG
 from FederatedLearningDDPG import FederatedLearningDDPG
+from SwarmLearningDDPG import SwarmLearningDDPG
 from PositiveWeightingDDPG import PositiveWeightingDDPG
 from RealWeightingDDPG import RealWeightingDDPG
 from MomentumAveragingDDPG import MomentumAveragingDDPG
@@ -38,6 +39,7 @@ METHODS = {'IDDPG': IndividualDDPG_real,
            'SEDDPG': SharedExperienceDDPG,
            'SNDDPG': SharedNetworkDDPG,
            'FLDDPG': FederatedLearningDDPG,
+           'SwarmDDPG': SwarmLearningDDPG,
            'PWDDPG': PositiveWeightingDDPG,
            'RWDDPG': RealWeightingDDPG,
            'MADDPG': MomentumAveragingDDPG,
@@ -135,7 +137,6 @@ def experiment_test(
         path_critic: str
     ) -> bool:
     """Run evaluation experiment with specified values.
-
     Returns:
         bool: If program finished correctly.
     """
@@ -149,7 +150,7 @@ def experiment_test(
     print('Simulation: Ready to start!')
     uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
     roslaunch.configure_logging(uuid)
-    world_launch = roslaunch.parent.ROSLaunchParent(uuid, [HOME + '/catkin_ws/src/fl4sr/launch/fl4sr_real_4_easy.launch'])
+    world_launch = roslaunch.parent.ROSLaunchParent(uuid, [HOME + '/catkin_ws/src/fl4sr/launch/fl4sr_real_8_diff_reward.launch'])
     world_launch.start()
     time.sleep(5)
     # SETTINGS
@@ -202,48 +203,6 @@ def experiment_test(
     return success
 
 
-def experiment_real(
-        restart: bool,
-        seed: int,
-        world_number: int,
-        path_actor: str,
-        path_critic: str
-    ) -> None:
-    # set seeds
-    if seed is not None:
-        random.seed(seed)
-        np.random.seed(seed)
-    # set world
-    EVAL_WORLD = REAL_WORLD
-    # set env
-    EVAL_ENV = 'RealEnviroment'
-    # RUN
-    print('Simulation: Ready to run!')
-    if restart:
-        with open('experiment.pickle', 'rb') as f:
-            DDPG = pickle.load(f)
-        DDPG.init_enviroment()
-    else:
-        DDPG = IndividualDDPG_real(EPISODE_COUNT, EPISODE_STEP_COUNT, EVAL_WORLD, EVAL_ENV,'REAL-{}'.format(world_number))
-        DDPG.agents_load(
-            [path_actor],
-            [path_critic]
-        ) 
-    success, _, _ = DDPG.test_real()
-    #roscore_launch.shutdown()
-    # RESULTS
-    if not success:
-        DDPG.terminate_enviroment()
-        # save DDPG class
-        with open('experiment.pickle', 'wb') as f:
-            pickle.dump(DDPG, f)
-        # write restart to file
-        with open('main.info', 'w') as f:
-            f.write('RESTART')
-    return success
-
-
-
 if __name__ == '__main__':
     # Experiments are defined by changing parameters in this file 
     # and also by setting arguments while starting running.
@@ -281,7 +240,19 @@ if __name__ == '__main__':
         '--pathCritic', 
         type=str,
         help='Path to critic.')
-    
+    parser.add_argument(
+        '--model_name',
+        type=str,
+        help='Name of the model to evaluates.')
+
+    parser.add_argument(
+        '--env_name',
+        type=str,
+        help='Name of the environment file.')
+    parser.add_argument(
+        'method', 
+        type=str,
+        help='Name of used method.')
     parser.add_argument(
         '--restart', 
         type=bool,
@@ -345,14 +316,7 @@ if __name__ == '__main__':
     assert args.method in METHODS, 'ERROR: Unknown method name.'
     
     # EXPERIMENT
-    if args.mode == 'learn':
-        print(f"It is in learning mode.")
-        experiment_learn(args.method, args.restart, args.seed, args.updateStep, args.updatePeriod, args.reward_goal, args.reward_collision,\
-                         args.reward_progress, args.reward_max_collision, args.list_reward, args.factor_linear, args.factor_angular, args.discount_factor, args.is_progress)
-    elif args.mode == 'real':
-        print(f"It is in real mode")
-        experiment_real(args.restart, args.seed, args.worldNumber, args.pathActor, args.pathCritic)
-    elif args.mode == 'eval':
-        print(f"It is in eval mode")
+    if args.learn:
+        experiment_learn(args.method, args.restart, args.seed, args.updateStep, args.updatePeriod)
+    else:
         experiment_test(args.restart, args.seed, args.worldNumber, args.model_name, args.env_name, args.pathActor, args.pathCritic)
-    else: raise Exception('Wrong mode!')

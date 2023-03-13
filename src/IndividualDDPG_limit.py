@@ -1,4 +1,4 @@
-#!/usr/bin/env python3.8
+#! /usr/bin/env python3.8
 import sys
 import os
 HOME = os.environ['HOME']
@@ -6,10 +6,13 @@ sys.path.append(HOME + '/catkin_ws/src/fl4sr/src')
 import numpy as np
 import time
 import pickle
+import json
+import matplotlib.pyplot as plt
 from Enviroment_diff_reward import Enviroment
+from Enviroment_eval import Enviroment_eval
 from environment_real import RealEnviroment
 from worlds import World
-from DDPG import DDPG
+from DDPG_limit import DDPG
 from buffers import BasicBuffer, PrioritizedExperienceReplayBuffer, Transition
 
 
@@ -20,10 +23,10 @@ class IndividualDDPG():
     def __init__(self,
         episode_count: int,
         episode_step_count: int,
-        world: World,
+        world: World,  
         env = 'Enviroment', 
         reward_goal: float = 100.0,
-        reward_collision: float = -10.0,
+        reward_collision: float = -30.0,
         reward_progress: float = 40.0,
         reward_max_collision: float = 3.0,
         list_reward: int = 1,
@@ -31,10 +34,10 @@ class IndividualDDPG():
         factor_angular: float = 1.0,
         discount_factor: float = 0.99,
         is_progress: bool = False,
-        name=None
+        name=None,
+        model_name: str = ""
         ) -> None:
         """Initialize class and whole experiment.
-
         Args:
             episode_count (int): ...
             episode_step_count (int): ...
@@ -68,7 +71,7 @@ class IndividualDDPG():
         self.factor_linear= factor_linear
         self.factor_angular= factor_angular
         self.is_progress=is_progress
-        print(f"discount factor: {discount_factor}")
+        self.model_name = model_name
         self.discount_factor = discount_factor
         # init enviroment and dimensions
         self.world = world
@@ -82,10 +85,13 @@ class IndividualDDPG():
         self.agents = self.init_agents()
         # loggers
         if not hasattr(self, 'NAME'):
-            if name is not None:
-                self.NAME = name
+            if not model_name is "":
+                self.NAME = model_name
             else:
-                self.NAME = 'IDDPG'
+                if name is not None:
+                    self.NAME = name
+                else:
+                    self.NAME = 'IDDPG'
         print(f"NAME = {self.NAME}")
         self.init_data()
         # debugging
@@ -94,6 +100,11 @@ class IndividualDDPG():
         print(self.agents)
         # paths
         self.init_paths()
+
+        
+
+    
+
         return
 
     def init_enviroment(self
@@ -108,6 +119,13 @@ class IndividualDDPG():
         self.list_reward,
         self.factor_linear,
         self.factor_angular, self.is_progress)
+        elif self.env == 'Enviroment_eval':
+            self.enviroment = Enviroment_eval(self.world, self.model_name, self.reward_goal,
+        self.reward_collision,
+        self.reward_progress,
+        self.reward_max_collision,
+        self.factor_linear,
+        self.factor_angular, self.is_progress)
         elif self.env == 'RealEnviroment':
             self.enviroment = RealEnviroment(self.world)
         else: raise Exception(f"No Environment named {self.env} is available.")
@@ -118,7 +136,6 @@ class IndividualDDPG():
     def init_buffers(self
         ) -> list:
         """Creates list with buffers.
-
         Returns:
             list: Buffers list.
         """
@@ -128,7 +145,6 @@ class IndividualDDPG():
     def init_agents(self
         ) -> list:
         """Creates list with agents.
-
         Returns:
             list: Agents list.
         """
@@ -142,7 +158,11 @@ class IndividualDDPG():
         """Initializes and creates file system for saving obtained information.
         """
         path_data = HOME + '/catkin_ws/src/fl4sr/src/data'
-        name_run = self.NAME + '-' + time.strftime("%Y%m%d-%H%M%S")
+        if not self.model_name is "":
+            name_run = self.NAME
+        else:
+            name_run = self.NAME + '-' + time.strftime("%Y%m%d-%H%M%S")
+        self.name_run = name_run
         self.path_run = path_data + '/' + name_run
         self.path_weights = self.path_run + '/weights'
         self.path_log = self.path_run + '/log'
@@ -170,6 +190,16 @@ class IndividualDDPG():
         self.robots_finished = np.zeros((self.episode_step_count, self.robot_count), dtype=bool)
         self.data = []      
         return
+
+    def init_data_eval_list(self
+        ) -> None:
+        """Initializes data containers for evaluation.
+        """
+        self.list_robot_succeeded = []
+        self.list_arrival_time = []
+        self.list_traj_eff = []
+        return
+
     def init_data_real(self
         ) -> None:
         """Initializes data containers for evaluation.
@@ -190,7 +220,6 @@ class IndividualDDPG():
     def run(self
         ) -> tuple:
         """Runs learning experiment.
-
         Returns:
             tuple: bool success (no errors encoutered), error episode, error step
         """
@@ -255,17 +284,18 @@ class IndividualDDPG():
         self.enviroment.reset()
         self.agents_save()
         self.data_save()
+        self.plot_save(self.path_log)
         return True, None, None
 
     def test(self
         ) -> tuple:
         """Runs evaluation experiment.
-
         Returns:
             tuple: bool success (no errors encountered), error episode, error step
         """
         # before start
         self.init_data_test()
+        self.init_data_eval_list()
         self.parameters_save()
         self.print_starting_info(False)
         # epizode loop
@@ -293,12 +323,13 @@ class IndividualDDPG():
             print('Robots succeded once: {}'.format(robots_succeeded_once))
             self.data_save_test(episode)
         self.enviroment.reset()
+        self.data_collect_eval_list(self.enviroment.list_robot_succeeded, self.enviroment.list_arrival_time, self.enviroment.list_traj_eff)
+        self.data_save_eval_list()
         return True, None, None
 
     def test_real(self
         ) -> tuple:
         """Runs evaluation experiment.
-
         Returns:
             tuple: bool success (no errors encountered), error episode, error step
         """
@@ -342,10 +373,8 @@ class IndividualDDPG():
         states: np.ndarray,
         ) -> np.ndarray:
         """Get actions of all agents.
-
         Args:
             states (np.ndarray): ...
-
         Returns:
             np.ndarray: actions
         """
@@ -364,7 +393,6 @@ class IndividualDDPG():
         ) -> None:
         """Save transitions to buffers.
         Args as described in thesis, only "D" is named as "f".
-
         Args:
             s (np.ndarray): ...
             a (np.ndarray): ...
@@ -381,11 +409,9 @@ class IndividualDDPG():
         episode: int
         ) -> np.ndarray:
         """Add random actions.
-
         Args:
             actions (np.ndarray): ...
             episode (int): not used
-
         Returns:
             np.ndarray: actions possibly with some actions randomized
         """
@@ -426,7 +452,6 @@ class IndividualDDPG():
     def agents_update(self, rewards):
         """Update parameters of agents.
         (Obviously empty for IDDPG, SEDDPG, and SNDDPG)
-
         Args:
             rewards (np.array): average rewards obtained by agents between updates 
         """
@@ -436,7 +461,6 @@ class IndividualDDPG():
         episode:int=None
         ) -> None:
         """Save weights of agents.
-
         Args:
             episode (int, optional): Current episode for file naming. Defaults to None.
         """
@@ -454,7 +478,6 @@ class IndividualDDPG():
         paths_critic: list
         ) -> None:
         """Load weights of agents.
-
         Args:
             paths_actor (list): list of paths to actors
             paths_critic (list): list of paths to critics
@@ -472,7 +495,6 @@ class IndividualDDPG():
         robots_succeeded_once
         ) -> None:
         """Collect data from learning experiments.
-
         Args:
             episode (int): ...
             total_rewards (np.ndarray): ...
@@ -494,7 +516,6 @@ class IndividualDDPG():
         data
         ) -> None:
         """Collect data from evaluating experiments.
-
         Args:
             step (int): ...
             robots_finished (np.ndarray): ...
@@ -506,13 +527,29 @@ class IndividualDDPG():
         self.data.append(data)
         return
 
+    def data_collect_eval_list(self,
+        list_robot_succeeded,
+        list_arrival_time,
+        list_traj_eff
+        ) -> None:
+        """Collect list of data for fixed repetition of experiment.
+        Args:
+            list_robot_succeeded (list): list of successful episode for each agent for defined amount of runs
+            list_arrival_time (list): list of arrival time of each agent for n runs when successful.
+            list_traj_eff (list): list of traj eff of each agent for n runs when successful.
+        """
+        self.list_robot_succeeded = list_robot_succeeded
+        self.list_arrival_time = list_arrival_time
+        self.list_traj_eff = list_traj_eff
+
+        return
+
     
 
     def data_save(self, 
         episode:int=None
         ) -> None:
         """Save collected data form learning.
-
         Args:
             episode (int, optional): ... . Defaults to None.
         """
@@ -522,11 +559,54 @@ class IndividualDDPG():
                 self.robots_succeeded_once)
         return
 
+    def plot_save(self,
+        log_path:str
+        ) -> None:
+        """Save training curve plot of rewards.npy .
+        Args:
+            log_path (str): ... . Defaults to the path of rewards.npy saved by data_save.
+        """
+        figure, ax = plt.subplots(1, 1, figsize=(6, 6), dpi=300)
+        #plt.xlabel('Episodes')
+        #plt.ylabel('Rewards')
+        values = self.average_rewards.T
+        num_time_steps = values.T.shape[0]
+        list_time_steps = [i for i in range(num_time_steps)]
+        num_agents = 4
+        list_agents = [f"Robot {i}" for i in range(num_agents)]
+        #print(f"shape of values_std: {np.array(values_std).shape}")
+        ax.plot(list_time_steps, values.T)
+        #for k in range(len(list_algorithm)):
+        #print(values.T[k])
+        #print(values_std.T[k])
+        #axs[i].fill_between(list_time_steps, values[k]-values_std[k], values[k]+values_std[k], alpha=0.5)
+        ax.set_title(f'Experiment name: {self.name_run}')
+        ax.set_xlabel('Episodes')
+        ax.set_ylabel('Rewards')
+        ax.set_ylim(0, 15)
+        ax.legend(list_agents)
+        figure_name = self.name_run +'.png'
+        figure_path = os.path.join(self.path_log, figure_name)
+        figure.savefig(figure_path)
+
+    def args_save(self,
+        args
+        ) -> None:
+        """Save Argparse used for this experiment for post-experiment use.
+        """
+        args_file_name = "args.json"
+        args_path = os.path.join(self.path_log, args_file_name)
+        with open(args_path, 'w') as f:
+            json.dump(str(args), f)
+        return
+
+        
+
+
     def data_save_test(self, 
         episode:int=None
         ) -> None:
         """Save collected data from evaluating.
-
         Args:
             episode (int, optional): ... . Defaults to None.
         """
@@ -537,13 +617,28 @@ class IndividualDDPG():
         with open(self.path_log + '/data-{}.pkl'.format(episode), 'wb') as f:
             pickle.dump(self.data, f)
         return
+
+    def data_save_eval_list(self
+        ) -> None:
+        """Save collected data from evaluating.
+        Args:
+            None.
+            TODO I also want to compute average robot_succeeded, arrival_time and traj_eff....
+        """
+        np.save(self.path_log + '/list_robot_succeeded', 
+                self.list_robot_succeeded)
+        np.save(self.path_log + '/list_arrival_time', 
+                self.list_arrival_time)
+        np.save(self.path_log + '/list_traj_eff', 
+                self.list_traj_eff)
+        
+        return
         
         
     def data_save_real(self, 
         episode:int=None
         ) -> None:
         """Save collected data from evaluating.
-
         Args:
             episode (int, optional): ... . Defaults to None.
         """
@@ -601,7 +696,6 @@ class IndividualDDPG():
         training: bool=True
         ) -> None:
         """Print staring information about experiment.
-
         Args:
             training (bool, optional): ... . Defaults to True.
         """

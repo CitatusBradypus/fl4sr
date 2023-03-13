@@ -89,6 +89,7 @@ class BasicBuffer():
                                     k=batch_size)
         samples = vectorize_samples(samples)
         return samples
+    
     def pure_sample(self,
         batch_size: int
         ) -> tuple:
@@ -101,12 +102,10 @@ class BasicBuffer():
             samples = random.sample(self._values[:self._values_count], 
                                     k=batch_size)
         return samples
-    
     def initialise(self):
         self._values = [None] * self._max_size
         self._index = 0
         self._values_count = 0
-
 
 
 class PrioritizedExperienceReplayBuffer():

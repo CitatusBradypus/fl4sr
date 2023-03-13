@@ -1,4 +1,4 @@
-#!/usr/bin/env python3.8
+#! /usr/bin/env python3.8
 import sys
 import os
 HOME = os.environ['HOME']
@@ -21,7 +21,7 @@ from std_srvs.srv import Empty
 from tf.transformations import euler_from_quaternion
 from collections import deque
 
-class Enviroment_eval():
+class Enviroment():
     """Similar class as openAI gym Env. 
     
     Is able to: reset, step.
@@ -29,7 +29,6 @@ class Enviroment_eval():
 
     def __init__(self, 
         world: World,
-        model_name: str,
         reward_goal: float,
         reward_collision: float,
         reward_progress: float,
@@ -49,7 +48,6 @@ class Enviroment_eval():
         self.MAXIMUM_SCAN_RANGE = 0.8
         self.MINIMUM_SCAN_RANGE = 0.15
         self.GOAL_RANGE = 0.5
-        print(f"reward_goal: {reward_goal}")
         self.REWARD_GOAL = reward_goal
         self.REWARD_COLLISION_FIX_RATE = 0.25
         self.REWARD_COLLISION_FIX = reward_collision * self.REWARD_COLLISION_FIX_RATE
@@ -70,11 +68,6 @@ class Enviroment_eval():
             self.LAMBDA = np.log(2)/5 # np.log(5)/5 let's choose one
         else:
             self.LAMBDA = np.log(5)/5
-
-        # Evaluation logging related
-        self.model_name = model_name
-        self.num_runs = 100 # arbitrary number
-        self.count_exp = 0 
 
         # simulation services
         # rospy.wait_for_service('/gazebo/reset_simulation')
@@ -150,21 +143,6 @@ class Enviroment_eval():
         # various simulation outcomes
         self.robot_finished = np.zeros((self.robot_count), dtype=bool)
         self.robot_succeeded = np.zeros((self.robot_count), dtype=bool)
-        self.robot_already_succeeded = np.zeros((self.robot_count), dtype=bool)
-        self.start_time = np.zeros((self.robot_count), dtype=float)
-        self.arrival_time = np.zeros((self.robot_count), dtype=float)
-        self.dict_traj = {'x': [], 'y': [], 'theta': []}
-        self.traj_eff = np.zeros((self.robot_count), dtype=float)
-
-        
-        # list to attend the results for full experiments.
-        # append this list with results. 
-        self.list_robot_succeeded = []
-        self.list_arrival_time = []
-        self.list_traj_eff = []
-
-
-
         # previous and current distances
         self.robot_target_distances_previous = self.get_distance(
             self.x_starts, 
@@ -206,7 +184,7 @@ class Enviroment_eval():
                 for id, rid in enumerate(self.robot_indexes):
                     # pick new starting position and direction and set them
                     # TODO several starting and target points. 
-                    # if self.start_indexes[id] < len(self.start_indexes[id])# restart robots
+                    # if self.start_indexes[id] < len(self.start_indexes[id]):
                     #     self.start_indexes[id] = self.start_indexes[id] + 1
                     # else: self.start_indexes[id] = 0
                     # if self.target_indexes[id] < len(self.target_indexes[id]):
@@ -267,22 +245,6 @@ class Enviroment_eval():
         #print(f"before pause")
         self.pause()
         #print(f"end of reset")
-
-        # Append the list of robots.
-        self.list_robot_succeeded.append(self.robot_finished)
-        self.list_arrival_time.append(self.arrival_time)
-        self.list_traj_eff.append(self.traj_eff)
-
-        # Initialisation
-        self.robot_finished = np.zeros((self.robot_count), dtype=bool)
-        self.robot_succeeded = np.zeros((self.robot_count), dtype=bool)
-        self.robot_already_succeeded = np.zeros((self.robot_count), dtype=bool)
-        self.start_time = np.zeros((self.robot_count), dtype=float)
-        self.arrival_time = np.zeros((self.robot_count), dtype=float)
-        self.traj_eff = np.zeros((self.robot_count), dtype=float)
-
-        # Count up
-        self.count_exp +=1
         return
     
     def step(self,
@@ -304,7 +266,6 @@ class Enviroment_eval():
                    error (bool)
                    data (dict)
         """
-
         assert len(actions) == self.robot_count, 'Wrong actions dimension!'
         # generate twists, also get separate values of actions
         twists = [self.action_to_twist(action) for action in actions]
@@ -313,11 +274,7 @@ class Enviroment_eval():
         # publish twists
         # self.pause()
         for i in range(self.robot_count):
-            if self.robot_finished[i] == True:
-                '''newly added'''
-                self.publisher_turtlebots[i].publish(self.command_empty)
-            else:
-                self.publisher_turtlebots[i].publish(twists[i])
+            self.publisher_turtlebots[i].publish(twists[i])
             #self.publisher_turtlebots[i].publish(Twist())
         # start of timing !!! changed to rospy time !!!
         start_time = rospy.get_time()
@@ -396,7 +353,7 @@ class Enviroment_eval():
         self.robot_succeeded[robot_target_distances < self.GOAL_RANGE] = True
         # collision reward
         reward_collision = self.calculate_reward_collision(robot_collisions, id_collisions, robot_lasers)
-        # print(f"REWARD COLLISION: {reward_collision}")
+        print(f"REWARD COLLISION: {reward_collision}")
         #reward_collision[np.where(robot_collisions)] = self.REWARD_COLLISION
         reward_time = self.REWARD_TIME
         self.robot_finished[np.where(robot_collisions)] = True
@@ -413,52 +370,17 @@ class Enviroment_eval():
             # I will add the robot out of the arena here
             check_outside = self.check_outside_arena(x, y, i)
             if self.robot_finished[i] or check_outside:
-                '''newly added'''
-                self.robot_finished[i] = True
+                self.reset(i)
                 was_restarted = True
         if was_restarted:
             states = self.get_current_states()
-
-
-        '''newly added'''
-        for i in range(self.robot_count):
-            if self.robot_succeeded[i] and not self.robot_already_succeeded[i]:
-                self.robot_already_succeeded[i] = True
-                self.arrival_time[i] = rospy.get_time() - self.start_time[i]
-                self.traj_eff[i] = self.calculate_traj_eff(self.dict_traj, i)
-                # after reset, the start time is initialised and the arrival time is calculated by subtracting the current time and the start time.
-                # only reset when every robots are finished.
-
-
-
         # additional data to send
-        self.dict_traj['x'].append(x)
-        self.dict_traj['y'].append(y)
-        self.dict_traj['theta'].append(theta)
-
-
-        if all(self.robot_finished) == True:
-            self.reset(robot_id=-1)
         data = {}
         data['x'] = x
         data['y'] = y
         data['theta'] = theta
 
         return states, rewards, robot_finished, self.robot_succeeded, False, data
-
-    def calculate_traj_eff(self, dict_traj, agent_id):
-        # TODO Debugging is needed: if it outputs right values [0-1]
-        list_x = dict_traj['x']
-        list_y = dict_traj['y']
-        total_distance = 0.0
-        
-        for i in range(len(list_x)-1):
-            total_distance += sqrt((list_x[i][agent_id]-list_x[i+1][agent_id])**2 + (list_y[i][agent_id]-list_y[i+1][agent_id])**2)
-        ref_distance = sqrt((list_x[0][agent_id]-list_x[-1][agent_id])**2 + (list_y[0][agent_id]-list_y[-1][agent_id])**2)
-        traj_eff = ref_distance/total_distance
-
-        return traj_eff
-        
 
     def calculate_reward_collision(self, robot_collisions, id_collisions, robot_lasers):
         # 1. Reward for the collision event
@@ -670,6 +592,7 @@ class Enviroment_eval():
         Returns:
             np.ndarray: Starting states.
         """
+        print(f"cur start")
         model_state = self.position_info_getter.get_msg()
         robot_indexes = self.get_robot_indexes_from_model_state(model_state)
         x, y, theta, _ = self.get_positions_from_model_state(model_state, 
@@ -702,4 +625,5 @@ class Enviroment_eval():
                            #s_actions_linear, s_actions_angular, 
                            s_robot_target_distances, s_robot_target_angle_difference))
         assert states.shape == (self.robot_count, self.observation_dimension), 'Wrong states dimension!'
+        print(f"cur end")
         return states

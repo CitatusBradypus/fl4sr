@@ -9,36 +9,28 @@ import numpy as np
 HOME = os.environ['HOME']
 sys.path.append(HOME + '/catkin_ws/src/fl4sr/src')
 
+# This script is for real experiment. 
+
 # COMMANDS
 # Commands are saved to command list, which are then then run.
 # This is done so the experiment can be restarted after encoutering error.
-<<<<<<< HEAD
-COMMAND_LIST = [
-    #['rosrun', 'fl4sr', 'experiment.py', 'learn=True', 'IDDPG'],
-    #['rosrun', 'fl4sr', 'experiment.py', 'learn=True', 'SEDDPG'],
-    #['rosrun', 'fl4sr', 'experiment.py', 'learn=True', 'SNDDPG'],
-    #['rosrun', 'fl4sr', 'experiment.py', 'learn=True', 'IDDPG'],
-    #['rosrun', 'fl4sr', 'experiment.py', 'learn=True', 'FLDDPG', '--updatePeriod=2'],
-    ['rosrun', 'fl4sr', 'experiment.py', 'learn=True', 'SwarmDDPG', '--updatePeriod=2']
-=======
 
-#dict_reward = {'reward_goal': [1,2,3,4], 'reward_collision': [1,2,3,4], 'reward_progress': [1]}
-dict_reward = {'reward_goal': [100.0], 'reward_collision': [-20.0], 'reward_progress': [40.0]}
-dict_list = {'list_reward': {1,2,3}}
-dict_seed = {'seed': [101, 102,103]}
+dict_reward = {'reward_goal': [100.0], 'reward_collision': [-30.0], 'reward_progress': [40.0]}
+dict_list = {'list_reward': 1}
+dict_update_period = {'updatePeriod': [1,3,5]}
+dict_seed = {'seed': [601]}
 #dict_factor = {'factor_angular': [1.0]}
-dict_algorithms = {'algorithms': ['IDDPG', 'SNDDPG', 'SEDDPG', 'FLDDPG']}
-dict_reward_max_collision = {'reward_max_collision': [1.0]}
+dict_algorithms = {'algorithms': ['FLDDPG']}
+#dict_reward_max_collision = {'reward_max_collision': [1.0]}
 
 COMMAND_LIST = []
 #for rg, rc, rp in zip(dict_reward['reward_goal'], dict_reward['reward_collision'], dict_reward['reward_progress']):
 for rg, rc, rp in zip(dict_reward['reward_goal'], dict_reward['reward_collision'], dict_reward['reward_progress']):
-    for lr in dict_list['list_reward']:
+    for uP in dict_update_period['updatePeriod']:
         for seed in dict_seed['seed']:
-            for rmax in dict_reward_max_collision['reward_max_collision']:
-                for algo in dict_algorithms['algorithms']:
-                    COMMAND_LIST.append(['rosrun', 'fl4sr', 'experiment.py', algo, f'--mode={"learn"}', f'--seed={seed}', '--updatePeriod=1', f'--reward_goal={rg}',\
-                     f'--reward_collision={rc}',f'--reward_progress={rp}', f'--reward_max_collision={rmax}', f'--list_reward={lr}', '--factor_linear=0.25', f'--discount_factor={0.99}'])
+            for algo in dict_algorithms['algorithms']:
+                COMMAND_LIST.append(['rosrun', 'fl4sr', 'experiment_limit.py', algo, f'--mode={"learn"}', f'--seed={seed}', f'--updatePeriod={uP}', f'--reward_goal={rg}',\
+                 f'--reward_collision={rc}',f'--reward_progress={rp}', f'--reward_max_collision={1.0}', f'--list_reward={dict_list["list_reward"]}', '--factor_linear=0.25', f'--discount_factor={0.99}'])
 
 
 #COMMAND_LIST = [
@@ -58,28 +50,12 @@ for rg, rc, rp in zip(dict_reward['reward_goal'], dict_reward['reward_collision'
 #     ['rosrun', 'fl4sr', 'experiment.py', f'--mode={"learn"}',  '--reward_goal=50.0', '--reward_collision=-100.0','--reward_progress=30.0', '--factor_linear=0.25','--factor_angular=1.0', 'SEDDPG'],
 #     ['rosrun', 'fl4sr', 'experiment.py', f'--mode={"learn"}',  '--reward_goal=50.0', '--reward_collision=-100.0','--reward_progress=30.0', '--factor_linear=0.25','--factor_angular=1.0', 'SNDDPG'],
 #     ['rosrun', 'fl4sr', 'experiment.py', f'--mode={"learn"}',  '--updatePeriod=2', '--reward_goal=50.0', '--reward_collision=-100.0','--reward_progress=30.0', '--factor_linear=0.25','--factor_angular=1.0', 'FLDDPG'],
->>>>>>> 5bba44c537583da7382ff2e9ed68ab8230948569
     #['rosrun', 'fl4sr', 'experiment.py', 'learn=True', 'PWDDPG', '--updatePeriod=2'],
     #['rosrun', 'fl4sr', 'experiment.py', 'learn=True', 'RWDDPG', '--updatePeriod=2'],
     #['rosrun', 'fl4sr', 'experiment.py', 'learn=True', 'MADDPG', '--updatePeriod=2'],
     #['rosrun', 'fl4sr', 'experiment.py', 'learn=True', 'AllDDPG', '--updatePeriod=2'],
 #]
 
-<<<<<<< HEAD
-#COMMAND_LIST = []
-#for eid in range(1, 8+1):
-#    for nid in range(0, 4+1):
-#        for wid in range(0, 4):
-#            COMMAND_LIST += [['rosrun', 'fl4sr', 'experiment.py', '','IDDPG', '--worldNumber={}'.format(wid), 
-#            '--pathActor=/home/users/jpikman/catkin_ws/src/fl4sr/src/data/RWDDPG-b-0.5-{}/weights/actor-final-{}.pkl'.format(eid, nid),
-#            '--pathCritic=/home/users/jpikman/catkin_ws/src/fl4sr/src/data/RWDDPG-b-0.5-{}/weights/critic-final-{}.pkl'.format(eid, nid)]]
-#for eid in range(1, 8+1):
-#    for nid in range(0, 4+1):
-#        for wid in range(0, 4):
-#            COMMAND_LIST += [['rosrun', 'fl4sr', 'experiment.py', '','IDDPG', '--worldNumber={}'.format(wid),
-#            '--pathActor=/home/users/jpikman/catkin_ws/src/fl4sr/src/data/MADDPG-h-b-0.5-{}/weights/actor-final-{}.pkl'.format(eid, nid),
-#            '--pathCritic=/home/users/jpikman/catkin_ws/src/fl4sr/src/data/MADDPG-h-b-0.5-{}/weights/critic-final-{}.pkl'.format(eid, nid)]]
-=======
 # COMMAND_LIST = []
 # #for eid in range(1, 8+1):
 # #    for nid in range(0, 4+1):
@@ -93,7 +69,6 @@ for rg, rc, rp in zip(dict_reward['reward_goal'], dict_reward['reward_collision'
 # #            COMMAND_LIST += [['rosrun', 'fl4sr', 'experiment.py', '','IDDPG', '--worldNumber={}'.format(wid),
 # #            '--pathActor=/home/users/jpikman/catkin_ws/src/fl4sr/src/data/MADDPG-h-b-0.5-{}/weights/actor-final-{}.pkl'.format(eid, nid),
 # #            '--pathCritic=/home/users/jpikman/catkin_ws/src/fl4sr/src/data/MADDPG-h-b-0.5-{}/weights/critic-final-{}.pkl'.format(eid, nid)]]
->>>>>>> 5bba44c537583da7382ff2e9ed68ab8230948569
 # for eid in range(4, 8+1):
 #     for nid in range(0, 4+1):
 #         for wid in range(0, 4):

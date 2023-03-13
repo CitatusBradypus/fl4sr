@@ -48,7 +48,14 @@ class Enviroment():
         self.MAXIMUM_SCAN_RANGE = 0.8
         self.MINIMUM_SCAN_RANGE = 0.15
         self.GOAL_RANGE = 0.5
+<<<<<<< HEAD
+        self.REWARD_GOAL = 100.0
+        self.REWARD_COLLISION = -10.0
+        self.PROGRESS_REWARD_FACTOR = 40.0
+
+=======
         self.REWARD_GOAL = reward_goal
+>>>>>>> 5bba44c537583da7382ff2e9ed68ab8230948569
         self.REWARD_COLLISION_FIX_RATE = 0.25
         self.REWARD_COLLISION_FIX = reward_collision * self.REWARD_COLLISION_FIX_RATE
         self.REWARD_COLLISION_VARIABLE = reward_collision * (1 - self.REWARD_COLLISION_FIX_RATE)
@@ -61,6 +68,8 @@ class Enviroment():
         self.FACTOR_NORMALISE_ANGLE = np.pi
         self.REWARD_MAX_COLLISION_DENSE = reward_max_collision
         self.LAMBDA_COLLISION = np.log(self.REWARD_MAX_COLLISION_DENSE + 1)
+<<<<<<< HEAD
+=======
         print(f"self.FACTOR_LINEAR: {self.FACTOR_LINEAR}")
         self.MAX_DISTANCE = 5.5
         self.IS_PROGRESS = is_progress
@@ -69,6 +78,7 @@ class Enviroment():
         else:
             self.LAMBDA = np.log(5)/5
 
+>>>>>>> 5bba44c537583da7382ff2e9ed68ab8230948569
         # simulation services
         # rospy.wait_for_service('/gazebo/reset_simulation')
         # self.reset_simulation = rospy.ServiceProxy('/gazebo/reset_simulation', Empty)
@@ -249,7 +259,7 @@ class Enviroment():
     
     def step(self,
         actions: np.ndarray,
-        time_step: float=0.1
+        time_step: float=0.3
         ) -> tuple:
         """Perform one step of simulations using given actions and lasting for 
         set time.
@@ -269,7 +279,7 @@ class Enviroment():
         assert len(actions) == self.robot_count, 'Wrong actions dimension!'
         # generate twists, also get separate values of actions
         twists = [self.action_to_twist(action) for action in actions]
-        actions_linear_x = actions.T[1]
+        actions_linear_x = 0.8*actions.T[1]
         actions_angular_z = actions.T[0]
         # publish twists
         # self.pause()
@@ -357,8 +367,19 @@ class Enviroment():
         #reward_collision[np.where(robot_collisions)] = self.REWARD_COLLISION
         reward_time = self.REWARD_TIME
         self.robot_finished[np.where(robot_collisions)] = True
+
+        reward_time = self.REWARD_TIME
         # total reward
+<<<<<<< HEAD
+        rewards = reward_distance + reward_goal + reward_collision + reward_time 
+        print(f"rewards: {rewards}")
+        print(f"reward_distance: {reward_distance}")
+        print(f"reward_collision: {reward_collision}")
+        #print(f"reward_time: {reward_time}")
+        print(f"reward_goal: {reward_goal}")
+=======
         rewards = reward_distance + reward_goal + reward_collision + reward_time
+>>>>>>> 5bba44c537583da7382ff2e9ed68ab8230948569
         
         # set current target distance as previous
         distances_help = self.robot_target_distances_previous.copy()
@@ -392,8 +413,11 @@ class Enviroment():
             reward_collision[jdx] += -(np.exp(robot_lasers[jdx][id_collisions[jdx]] * self.LAMBDA_COLLISION)) + 1
         
         return reward_collision
+<<<<<<< HEAD
+=======
         
         # 
+>>>>>>> 5bba44c537583da7382ff2e9ed68ab8230948569
     def create_model_state(self, 
         name: str,
         pose_x: float,

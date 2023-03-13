@@ -3,10 +3,9 @@ import sys
 import os
 HOME = os.environ['HOME']
 sys.path.append(HOME + '/catkin_ws/src/fl4sr/src')
-from IndividualDDPG import IndividualDDPG
+from IndividualDDPG_limit import IndividualDDPG
 from worlds import World
-from DDPG import DDPG
-from buffers import BasicBuffer, Transition
+from DDPG_limit import DDPG
 import numpy as np
 from models import Actor, Critic
 from buffers import BasicBuffer, PrioritizedExperienceReplayBuffer, VectorTransitions, Transition
@@ -28,7 +27,7 @@ class SharedNetworkDDPG(IndividualDDPG):
         world: World,
         env = 'Enviroment',
         reward_goal: float = 100.0,
-        reward_collision: float = -10.0,
+        reward_collision: float = -30.0,
         reward_progress: float = 40.0,
         reward_max_collision: float = 3.0,
         list_reward: int = 1,
