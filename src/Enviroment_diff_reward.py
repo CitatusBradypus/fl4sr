@@ -19,7 +19,7 @@ from gazebo_msgs.msg import ModelState
 from gazebo_msgs.srv import SetModelState
 from std_srvs.srv import Empty
 from tf.transformations import euler_from_quaternion
-from collections import deque
+import queue
 
 class Enviroment():
     """Similar class as openAI gym Env. 
@@ -148,7 +148,7 @@ class Enviroment():
         self.command_empty = Twist()
         # basic settings
         self.node = rospy.init_node('turtlebot_env', anonymous=True)
-        self.rate = rospy.Rate(200)
+        self.rate = rospy.Rate(100)
         self.laser_count = 24
         
         self.observation_dimension = self.laser_count + 2
@@ -172,7 +172,9 @@ class Enviroment():
                               LaserScan, 
                               self.laser_info_getter[id]) 
             for id, rid in enumerate(self.robot_indexes)]
-        self.laser_buffer = [[] for i in range(self.robot_count)]
+        
+        self.num_laser_buffer = 10
+        self.laser_buffer = [queue.Queue(self.num_laser_buffer) for i in range(self.robot_count)] #[[] for i in range(self.robot_count)]
 
         # various simulation outcomes
         self.robot_finished = np.zeros((self.robot_count), dtype=bool)
@@ -213,7 +215,7 @@ class Enviroment():
         rospy.wait_for_service('/gazebo/set_model_state')
 
         # Reset laser_buffer (for median filter)
-        self.laser_buffer = [[] for i in range(self.robot_count)]
+        self.laser_buffer = [queue.Queue(self.num_laser_buffer) for i in range(self.robot_count)] #[[] for i in range(self.robot_count)]
         # set model states or reset world
         if robot_id == -1:
             try:
@@ -283,10 +285,11 @@ class Enviroment():
         self.pause()
         #print(f"end of reset")
         return
+        
     
     def step(self,
         actions: np.ndarray,
-        time_step: float=0.1
+        time_step: float=0.3
         ) -> tuple:
         """Perform one step of simulations using given actions and lasting for 
         set time.
@@ -362,14 +365,16 @@ class Enviroment():
         robot_target_angle = robot_target_angle % (2 * np.pi)
         robot_target_angle_difference = (robot_target_angle - theta - np.pi) % (2 * np.pi) - np.pi
         # get current laser measurements
-        for _ in range(5):
-            scan = self.laser_info_getter[i].get_msg()
-            for i in range(self.robot_count):
-                self.laser_buffer[i].append(scan.ranges[i])
+        # for _ in range(self.num_laser_buffer):
+        #     scan = self.laser_info_getter[i].get_msg()
+        #     for i in range(self.robot_count):
+        #         self.laser_buffer[i].append(scan.ranges[i])
 
-        median_scan_ranges = apply_median_filter(self.laser_buffer)
-        robot_lasers, robot_collisions, id_collisions = self.get_robot_lasers_collisions(median_scan_ranges)
-        self.laser_buffer = [[] for i in range(self.robot_count)]
+        print(f"before putting")
+        self.put_scan_into_buffer()
+        print(f"after putting")
+        list_median_scan_ranges = self.apply_median_filter()
+        robot_lasers, robot_collisions, id_collisions = self.get_robot_lasers_collisions(list_median_scan_ranges)
 
         # create state array 
         # = lasers (24), 
@@ -406,7 +411,8 @@ class Enviroment():
             if progress_distance[i] > 0:
                 reward_distance[i] = self.PROGRESS_REWARD_FACTOR[i] * (progress_distance[i])
             else:
-                reward_distance[i] = 0
+                reward_distance[i] = self.PROGRESS_REWARD_FACTOR[i] * (progress_distance[i])#reward_distance[i] = 0
+        
         # reward_distance = - np.e ** (0.25 * robot_target_distances)
         # goal reward
         reward_goal = np.zeros(self.robot_count)
@@ -427,6 +433,7 @@ class Enviroment():
         #print(f"robot_lasers: {robot_lasers}")
         print(f"rewards: {rewards}")
         print(f"reward_distance: {reward_distance}")
+        print(f"progress_distance: {progress_distance}")
         print(f"reward_collision: {reward_collision}")
         #print(f"reward_time: {reward_time}")
         print(f"reward_goal: {reward_goal}")
@@ -612,10 +619,20 @@ class Enviroment():
         normalised_value = self.MAXIMUM_SCAN_RANGE - (number - self.MINIMUM_SCAN_RANGE) * (self.MAXIMUM_SCAN_RANGE / (self.MAXIMUM_SCAN_RANGE - self.MINIMUM_SCAN_RANGE))
         return normalised_value
 
-    def apply_median_filter(self,
-        laser_buffer: list
+    def apply_median_filter(self
         ) -> list:
-        list_median_scan_ranges = np.median(laser_buffer, axis=1)
+        # 1. get laser_buffer and transform into list type from queue.
+        list_laser_buffer = []
+        for i in range(len(self.laser_buffer)):
+            list_laser = list(self.laser_buffer[i].queue)
+            list_laser_buffer.append(list_laser)
+
+        # 2. Calculate the median of the obtained laser_buffer.
+        print(f"before median: {list_laser_buffer}")
+        array_median_scan_ranges = np.median(list_laser_buffer, axis=1)
+        list_median_scan_ranges = array_median_scan_ranges.tolist()
+        print(f"after median: {array_median_scan_ranges}")
+        
         return list_median_scan_ranges
 
     def get_robot_lasers_collisions(self,
@@ -631,26 +648,26 @@ class Enviroment():
         id_collisions = [0 for i in range(self.robot_count)]
         # each robot
         for i in range(self.robot_count):
-            lasers.append([])
+            lasers.append(median_scan_ranges[i])
             #scan = self.laser_info_getter[i].get_msg()
             #print(f"scan.ranges: {scan.ranges}")
             # each laser in scan
-            for j in range(len(median_scan_ranges)):
+            for j in range(len(median_scan_ranges[i])):
 
                 # if j == 0:
                 #     pass
                 # else:
-                lasers[i].append(0)
-                if scan.ranges[j] == float('Inf'):
+                #lasers[i].append(0)
+                if median_scan_ranges[i][j] == float('Inf'):
                     lasers[i][j] = self.normalise_scan(self.MAXIMUM_SCAN_RANGE)
-                elif np.isnan(scan.ranges[j]):
+                elif np.isnan(median_scan_ranges[i][j]):
                     lasers[i][j] = self.normalise_scan(self.MAXIMUM_SCAN_RANGE)
-                elif scan.ranges[j] > self.MAXIMUM_SCAN_RANGE:
+                elif median_scan_ranges[i][j] > self.MAXIMUM_SCAN_RANGE:
                     lasers[i][j] = self.normalise_scan(self.MAXIMUM_SCAN_RANGE)
-                elif scan.ranges[j] < self.MINIMUM_SCAN_RANGE:
+                elif median_scan_ranges[i][j] < self.MINIMUM_SCAN_RANGE:
                     lasers[i][j] = self.normalise_scan(self.MAXIMUM_SCAN_RANGE)
                 else:
-                    lasers[i][j] = self.normalise_scan(scan.ranges[j])
+                    lasers[i][j] = self.normalise_scan(median_scan_ranges[i][j])
             #lasers_deque = deque(lasers[i])
             #print(f"lasers_deque: {lasers_deque}")
             #lasers_deque.rotate(1)
@@ -665,6 +682,16 @@ class Enviroment():
         collisions = np.array(collisions)
         return lasers, collisions, id_collisions
 
+    def put_scan_into_buffer(self
+        ) -> None:
+        if self.laser_buffer[0].full():    
+            for i in range(self.robot_count):
+                self.laser_buffer[i].get()
+
+        for i in range(self.robot_count):
+                scan = self.laser_info_getter[i].get_msg()
+                self.laser_buffer[i].put(scan.ranges)
+        return
     def get_current_states(self
         ) -> np.ndarray:
         """Returns starting states.
@@ -684,7 +711,12 @@ class Enviroment():
                                             self.y_targets, y)
         robot_target_angle_difference = (robot_target_angle - theta - np.pi) % (2 * np.pi) - np.pi
         # get current laser measurements
-        robot_lasers, robot_collisions, id_collisions = self.get_robot_lasers_collisions()
+        self.put_scan_into_buffer()
+
+        list_median_scan_ranges = self.apply_median_filter()
+        robot_lasers, robot_collisions, id_collisions = self.get_robot_lasers_collisions(list_median_scan_ranges)
+        #self.laser_buffer = [queue.Queue(self.num_laser_buffer) for i in range(self.robot_count)] #[[] for i in range(self.robot_count)]
+        print(f"shape robot_lasers: {robot_lasers.shape}")
         
         # create state array 
         # = lasers (24), 
@@ -695,7 +727,7 @@ class Enviroment():
         s_actions_angular = np.zeros((self.robot_count, 1))
         s_robot_target_distances = robot_target_distances.reshape((self.robot_count, 1))
         s_robot_target_angle_difference = robot_target_angle_difference.reshape((self.robot_count, 1))
-        assert robot_lasers.shape == (self.robot_count,24), 'Wrong lasers dimension!'
+        assert robot_lasers.shape == (self.robot_count, 24), 'Wrong lasers dimension!'
         assert s_actions_linear.shape == (self.robot_count, 1), 'Wrong action linear dimension!'
         assert s_actions_angular.shape == (self.robot_count, 1), 'Wrong action angular dimension!'
         assert s_robot_target_distances.shape == (self.robot_count, 1), 'Wrong distance to target!'
