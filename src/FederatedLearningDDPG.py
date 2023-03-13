@@ -47,10 +47,11 @@ class FederatedLearningDDPG(IndividualDDPG):
             episode_step_count (int): ...
             world (World): contains information about experiment characteristics
         """
+        print(f"INSIDE FederatedLearningDDPG: episode_count: {episode_count}, episode_step_count: {episode_step_count}. world: {world}, env: {env}, name: {name} reward_goal: {reward_goal}, reward_collision: {reward_collision}, reward_progress: {reward_progress}, factor_linear: {factor_linear}, factor_angular: {factor_angular}, discount_factor: {discount_factor}, is_progress: {is_progress}")
         # set hyperparameters
         self.NAME = 'FLDDPG'
         self.BUFFER_SIZE = 10000
-        super().__init__(episode_count, episode_step_count, world)
+        super().__init__(episode_count, episode_step_count, world, env, reward_goal, reward_collision, reward_progress, reward_max_collision, list_reward, factor_linear, factor_angular, discount_factor, is_progress, name)
         # get model coutns
         self.agents_count = len(self.agents)
         self.actor_layers_count = len(self.agents[0].actor.layers)

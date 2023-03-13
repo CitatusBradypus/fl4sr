@@ -20,6 +20,7 @@ from gazebo_msgs.srv import SetModelState
 from std_srvs.srv import Empty
 from tf.transformations import euler_from_quaternion
 import queue
+from collections import deque
 
 class Enviroment():
     """Similar class as openAI gym Env. 

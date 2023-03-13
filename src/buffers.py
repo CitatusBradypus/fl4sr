@@ -102,7 +102,6 @@ class BasicBuffer():
             samples = random.sample(self._values[:self._values_count], 
                                     k=batch_size)
         return samples
-
     def initialise(self):
         self._values = [None] * self._max_size
         self._index = 0
