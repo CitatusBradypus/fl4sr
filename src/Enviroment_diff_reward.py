@@ -152,7 +152,7 @@ class Enviroment():
         self.rate = rospy.Rate(100)
         self.laser_count = 24
         
-        self.observation_dimension = self.laser_count + 2
+        self.observation_dimension = self.laser_count + 1 # 20230315 removed abs_distance
         self.action_dimension = 2
 
         # publishers for turtlebots
@@ -735,6 +735,6 @@ class Enviroment():
         assert s_robot_target_angle_difference.shape == (self.robot_count, 1), 'Wrong angle to target!'
         states = np.hstack((robot_lasers, 
                            #s_actions_linear, s_actions_angular, 
-                           s_robot_target_distances, s_robot_target_angle_difference))
+                           s_robot_target_angle_difference))
         assert states.shape == (self.robot_count, self.observation_dimension), 'Wrong states dimension!'
         return states
