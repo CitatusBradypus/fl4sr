@@ -393,7 +393,8 @@ class Enviroment():
         assert s_robot_target_angle_difference.shape == (self.robot_count, 1), 'Wrong angle to target!'
         states = np.hstack((robot_lasers, 
                             #s_actions_linear, s_actions_angular, 
-                            s_robot_target_distances, s_robot_target_angle_difference))
+                            #s_robot_target_distances, 
+                            s_robot_target_angle_difference))
         assert states.shape == (self.robot_count, self.observation_dimension), 'Wrong states dimension!'
         
         # rewards
@@ -734,7 +735,8 @@ class Enviroment():
         assert s_robot_target_distances.shape == (self.robot_count, 1), 'Wrong distance to target!'
         assert s_robot_target_angle_difference.shape == (self.robot_count, 1), 'Wrong angle to target!'
         states = np.hstack((robot_lasers, 
-                           #s_actions_linear, s_actions_angular, 
-                           s_robot_target_angle_difference))
+                            #s_actions_linear, s_actions_angular, 
+                            #s_robot_target_distances, 
+                            s_robot_target_angle_difference))
         assert states.shape == (self.robot_count, self.observation_dimension), 'Wrong states dimension!'
         return states
