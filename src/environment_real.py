@@ -1,0 +1,723 @@
+#! /usr/bin/env python3.8
+import sys
+import os
+HOME = os.environ['HOME']
+sys.path.append(HOME + '/catkin_ws/src/fl4sr/src')
+from math import sqrt
+import time
+import numpy as np
+import rospy
+from collections import deque
+import math
+
+from worlds import World
+from InfoGetter import InfoGetter
+
+from geometry_msgs.msg import Twist
+from rospy.service import ServiceException
+from sensor_msgs.msg import LaserScan
+from gazebo_msgs.msg import ModelStates
+from gazebo_msgs.msg import ModelState
+from gazebo_msgs.srv import SetModelState
+from nav_msgs.msg import Odometry
+from std_srvs.srv import Empty
+from tf.transformations import euler_from_quaternion
+
+
+class RealEnviroment():
+    """Similar class as openAI gym Env. 
+    
+    Is able to: reset, step.
+    """
+
+    def __init__(self, 
+        world: World
+        ) -> None:
+        """Initializes eviroment.
+
+        Args:
+            world (World): holds enviroment variables
+        """
+        # params        
+        self.COLLISION_RANGE = 0.25
+        self.MAXIMUM_SCAN_RANGE = 0.8
+        self.MINIMUM_SCAN_RANGE = 0.15
+        self.MINIMUM_CUT_RANGE = 0.22
+        self.GOAL_RANGE = 0.5
+        self.REWARD_GOAL = 100.0
+        self.REWARD_COLLISION = -10.0
+        self.PROGRESS_REWARD_FACTOR = 40.0
+        # simulation services
+        '''Simulation related'''
+        # rospy.wait_for_service('/gazebo/reset_simulation')
+        # self.reset_simulation = rospy.ServiceProxy('/gazebo/reset_simulation', Empty)
+        # rospy.wait_for_service('/gazebo/reset_world')
+        # self.reset_world = rospy.ServiceProxy('/gazebo/reset_world', Empty)
+        # rospy.wait_for_service('/gazebo/pause_physics')
+        # self.pause = rospy.ServiceProxy('/gazebo/pause_physics', Empty)
+        # rospy.wait_for_service('/gazebo/unpause_physics')
+        # self.unpause = rospy.ServiceProxy('/gazebo/unpause_physics', Empty)
+        # self.pause()
+        # world settings
+        
+        ''' World Related ''' # TODO I need to modify the world script to setup the initialisation. 
+        self.robot_count = world.robot_count
+        self.robot_alives = world.robot_alives
+        self.robot_indexes = world.robot_indexes
+
+        self.x_starts_all = world.x_starts
+        self.y_starts_all = world.y_starts
+
+
+        self.x_starts = [x[0] if isinstance(x, float) is not True else x for x in world.x_starts]
+        self.y_starts = [y[0] if isinstance(y, float) is not True else y for y in world.y_starts]
+
+        self.targets = world.target_positions
+        self.x_targets = np.array(self.targets).T[0]
+        self.y_targets = np.array(self.targets).T[1]
+        ''' Reset Related '''
+        # create restart enviroment messages
+        # self.reset_tb3_messages = \
+        #     [self.create_model_state('tb3_{}'.format(rid), 
+        #                              self.x_starts[id], 
+        #                              self.y_starts[id],
+        #                              -0.2)
+        #     for id, rid in enumerate(self.robot_indexes)]
+        # self.reset_target_messages = \
+        #     [self.create_model_state('target_{}'.format(rid), 
+        #                              self.targets[id][0], 
+        #                              self.targets[id][1], 
+        #                              0)
+        #     for id, rid in enumerate(self.robot_indexes)]
+        self.command_empty = Twist()
+        # basic settings
+        self.node = rospy.init_node('real_tb_env', anonymous=True)
+        self.rate = rospy.Rate(100)
+        self.laser_count = 24
+        
+        self.observation_dimension = self.laser_count + 2
+        self.action_dimension = 2
+
+        # publishers for turtlebots
+        self.publisher_turtlebots = \
+            [rospy.Publisher('/9/cmd_vel_mux/safety_controller'.format(i), 
+                             Twist, 
+                             queue_size=1) 
+            for i in self.robot_indexes]
+
+        # positional info getter # TODO let's change this with whycodes.
+        self.position_info_getter = InfoGetter()
+        self._position_subscriber = rospy.Subscriber("/whycon/turtle_states", 
+                                                     ModelStates, 
+                                                     self.position_info_getter)
+
+        # lasers info getters, subscribers unused
+        self.laser_info_getter = [InfoGetter() for i in range(self.robot_count)]
+        self._laser_subscriber = \
+            [rospy.Subscriber('/9/scan'.format(rid), 
+                              LaserScan, 
+                              self.laser_info_getter[id]) 
+            for id, rid in enumerate(self.robot_indexes)]
+
+        # List of whycon id in order of turtlebot ID 9, 10, 11, 13
+        self.list_whycon_id = ['5', '7', '8', '6']
+
+        # various simulation outcomes
+        self.robot_finished = np.zeros((self.robot_count), dtype=bool)
+        self.robot_succeeded = np.zeros((self.robot_count), dtype=bool)
+        # previous and current distances
+        self.robot_target_distances_previous = self.get_distance(
+            self.x_starts, 
+            self.x_targets, 
+            self.y_starts, 
+            self.y_targets)
+        print(f"observation space: {self.observation_dimension}")
+
+    # def reset(self,
+    #     robot_id: int=-1
+    #     ) -> None:
+    #     """Resets robots to starting state.
+    #     If robot_id is empty all robots will be reseted.
+
+    #     Args:
+    #         robot_id (int, optional): Id of robot to reset. Defaults to -1.
+    #     """
+    #     # wait for services
+    #     rospy.wait_for_service('/gazebo/reset_simulation')
+    #     rospy.wait_for_service('/gazebo/set_model_state')
+    #     # set model states or reset world
+    #     if robot_id == -1:
+    #         try:
+    #             state_setter = rospy.ServiceProxy('/gazebo/set_model_state', SetModelState)
+    #             for id, rid in enumerate(self.robot_indexes):
+    #                 # pick new starting position and direction and set them
+    #                 start_index = np.random.randint(len(self.x_starts_all[id]))
+    #                 self.x_starts[id] = self.x_starts_all[id][start_index]
+    #                 self.y_starts[id] = self.y_starts_all[id][start_index]
+    #                 direction = -0.2 #+ (np.random.rand() * np.pi / 2) - (np.pi / 4)
+    #                 # generate new message
+    #                 self.reset_tb3_messages[id] = \
+    #                     self.create_model_state('tb3_{}'.format(rid), 
+    #                                          self.x_starts[id], 
+    #                                          self.y_starts[id],
+    #                                          direction)
+    #                 # reset enviroment position
+    #                 state_setter(self.reset_tb3_messages[id])
+    #                 #state_setter(self.reset_target_messages[id])
+    #                 self.robot_finished[id] = False
+    #             print('Starts x:', self.x_starts)
+    #             print('Starts y:', self.y_starts)
+    #         except rospy.ServiceException as e:
+    #             print('Failed state setter!', e)
+    #         #self.reset_world()
+    #     else:
+    #         try:
+    #             state_setter = rospy.ServiceProxy('/gazebo/set_model_state', SetModelState)
+    #             state_setter(self.reset_tb3_messages[robot_id])
+    #             #state_setter(self.reset_target_messages[robot_id])
+    #             self.robot_finished[robot_id] = False
+    #         except rospy.ServiceException as e:
+    #             print('Failed state setter!', e)
+    #     # set robot move command
+    #     if robot_id == -1:
+    #         for i in range(self.robot_count):
+    #             self.publisher_turtlebots[i].publish(self.command_empty)
+    #             self.robot_target_distances_previous = self.get_distance(
+    #                 self.x_starts, 
+    #                 self.x_targets, 
+    #                 self.y_starts, 
+    #                 self.y_targets)
+    #             self.robot_succeeded = np.zeros((self.robot_count), dtype=bool)
+    #     else:
+    #         self.publisher_turtlebots[robot_id].publish(self.command_empty)            
+    #         self.robot_target_distances_previous[robot_id] = \
+    #             sqrt(
+    #                  (self.x_starts[robot_id] - self.x_targets[robot_id])**2 
+    #                  + (self.y_starts[robot_id] - self.y_targets[robot_id])**2)
+    #     # wait for new scan message, so that laser values are updated
+    #     # kinda cheeky but it works on my machine :D
+    #     self.unpause()
+    #     rospy.wait_for_message('/tb3_{}/scan'.format(self.robot_indexes[0]), LaserScan)
+    #     self.pause()
+    #     return
+
+    def reset(self, robot_id: int = -1
+    ) -> None:
+        '''Manual Reset'''
+        self.robot_finished = np.zeros((self.robot_count), dtype=bool)
+        self.robot_succeeded = np.zeros((self.robot_count), dtype=bool)
+        input("Press Enter after manually reposition the robots...")
+        print(f"Now it is running ...")
+        
+
+
+    
+    def step(self,
+        actions: np.ndarray,
+        time_step: float=0.3
+        ) -> tuple:
+        """Perform one step of simulations using given actions and lasting for 
+        set time.
+
+        Args:
+            actions (np.ndarray): lasers = [[l for k, l in enumerate(lasers[i]) if k % 32==0]]
+            if self.COLLISION_RANGE > min(lasers[i]) > 0:
+                collisions[i] = True
+        Returns:
+            tuple: states (np.ndarray), 
+                   rewards (np.ndarray), 
+                   robot_finished (list), 
+                   robot_succeeded (list),
+                   error (bool)
+                   data (dict)
+        """
+        print("step started")
+        assert len(actions) == self.robot_count, 'Wrong actions dimension!'
+        # generate twists, also get separate values of actions
+        twists = [self.action_to_twist(action) for action in actions]
+        actions_linear_x = actions[0][1]
+        actions_angular_z = actions[0][0]
+        print(f"actions: {actions}")
+        #one_twist =Twist()
+        #one_twist.linear.x = actions_linear_x
+        #one_twist.angular.z = actions_angular_z
+        for i in range(self.robot_count):
+            self.publisher_turtlebots[i].publish(twists[0])
+        # publish twists
+        # self.pause()
+        # start of timing !!! changed to rospy time !!!
+        start_time = time.time() #rospy.get_time()
+        running_time = 0
+        # move robots with action for time_step        
+        while(time.time()-start_time < time_step):
+            time.sleep(0.01)
+            #print(f"in the while loop... : {time.time()-start_time}")
+            
+        # Publishing Empty Twist to run the robot only for 0.1 s
+
+        #for i in range(self.robot_count):
+        #    self.publisher_turtlebots[i].publish(Twist())
+        # send empty commands to robots
+        # self.unpause()
+        # read current positions of robots
+        model_states = self.position_info_getter.get_msg()
+        robot_indexes = self.get_robot_indexes_from_model_state(model_states)
+        x, y, theta, correct = self.get_positions_from_model_state(model_states, robot_indexes)
+        print(f"x: {x}, y: {y}, theta: {theta}")
+        #print("model_state ended")
+        # check for damaged robots
+        if np.any(np.isnan(correct)):
+            print('ERROR: Enviroment: nan robot twist detected!')
+            return None, None, None, None, True, None
+        
+        theta = theta % (2 * np.pi)
+        # get current distance to goal
+        robot_target_distances = self.get_distance(x, self.x_targets, 
+                                                   y, self.y_targets)
+        # get current robot angles to targets
+        robot_target_angle = self.get_angle(self.x_targets, x, 
+                                            self.y_targets, y)
+        robot_target_angle = robot_target_angle % (2 * np.pi)
+        robot_target_angle_difference = (robot_target_angle - theta - np.pi) % (2 * np.pi) - np.pi
+        # get current laser measurements
+        robot_lasers, robot_collisions = self.get_robot_lasers_collisions_sparse()
+        print("state obtained")
+        # create state array 
+        # = lasers (24), 
+        #   action linear x (1), action angular z (1), 
+        #   distance to target (1), angle to target (1)
+        # = dimension (6, 28)
+        s_actions_linear = actions_linear_x.reshape((self.robot_count, 1))
+        s_actions_angular = actions_angular_z.reshape((self.robot_count, 1))
+        s_robot_target_distances = robot_target_distances.reshape((self.robot_count, 1))
+        s_robot_target_angle_difference = robot_target_angle_difference.reshape((self.robot_count, 1))
+        assert robot_lasers.shape == (self.robot_count, 24), 'Wrong lasers dimension!'
+        #assert s_actions_linear.shape == (self.robot_count, 1), 'Wrong action linear dimension!'
+        #assert s_actions_angular.shape == (self.robot_count, 1), 'Wrong action angular dimension!'
+        assert s_robot_target_distances.shape == (self.robot_count, 1), 'Wrong distance to target!'
+        assert s_robot_target_angle_difference.shape == (self.robot_count, 1), 'Wrong angle to target!'
+        states = np.hstack((robot_lasers, 
+                            #s_actions_linear, s_actions_angular, 
+                            s_robot_target_distances, s_robot_target_angle_difference))
+        assert states.shape == (self.robot_count, self.observation_dimension), 'Wrong states dimension!'
+        
+        # rewards
+        # distance rewards
+        # CHECK for possible huge value after reset
+        reward_distance = self.PROGRESS_REWARD_FACTOR * (self.robot_target_distances_previous - robot_target_distances)
+        # reward_distance = - np.e ** (0.25 * robot_target_distances)
+        # goal reward
+        reward_goal = np.zeros(self.robot_count)
+        reward_goal[robot_target_distances < self.GOAL_RANGE] = self.REWARD_GOAL
+        self.robot_finished[robot_target_distances < self.GOAL_RANGE] = True
+        self.robot_succeeded[robot_target_distances < self.GOAL_RANGE] = True
+        # collision reward
+        reward_collision = np.zeros(self.robot_count)
+        reward_collision[np.where(robot_collisions)] = self.REWARD_COLLISION
+        self.robot_finished[np.where(robot_collisions)] = True
+        # total reward
+        rewards = reward_distance + reward_goal + reward_collision
+        
+        # set current target distance as previous
+        distances_help = self.robot_target_distances_previous.copy()
+        self.robot_target_distances_previous = robot_target_distances.copy()
+        # restart robots
+        was_restarted = False
+        robot_finished = self.robot_finished.copy()
+
+        # TODO remove all the resets
+        # for i in range(self.robot_count):
+        #     if self.robot_finished[i]:
+        #         self.reset(i)
+        #         was_restarted = True
+        # if was_restarted:
+        #     states = self.get_current_states()
+        # additional data to send
+        data = {}
+        data['x'] = x
+        data['y'] = y
+        data['theta'] = theta
+        print(f"step ended")
+        return states, rewards, robot_finished, self.robot_succeeded, False, data
+
+    # def create_model_state(self, 
+    #     name: str,
+    #     pose_x: float,
+    #     pose_y: float,
+    #     orientation_z: float,
+    #     ) -> ModelState:
+    #     """Creates basic ModelState with specified values. 
+    #     Other values are set to zero.
+
+    #     Args:
+    #         name (str): Name.
+    #         pose_x (float): Value of ModelState.pose.x
+    #         pose_y (float): Value of ModelState.pose.y
+    #         orientation_z (float): Value of ModelState.oritentation.z
+
+    #     Returns:
+    #         ModelState: Initialized model state.
+    #     """
+    #     model_state = ModelState()
+    #     model_state.model_name = name
+    #     model_state.pose.position.x = pose_x
+    #     model_state.pose.position.y = pose_y
+    #     model_state.pose.position.z = 0
+    #     model_state.pose.orientation.x = 0.0
+    #     model_state.pose.orientation.y = 0.0
+    #     model_state.pose.orientation.z = orientation_z
+    #     model_state.pose.orientation.w = 0.0
+    #     return model_state
+
+    def get_robot_indexes_from_odom(self,
+        odom: Odometry=None
+        ) -> list:
+        # TODO needs to be changed with whycode
+        """Creates list with indexes of robots in model state.
+
+        Args:
+            model_state (ModelStates, optional): Source of robot indexes. Defaults to None.
+
+        Returns:
+            list: Robot indexes. ('tb_2' index is list[2])
+        """
+        robots = [0 for i in range(len(self.robot_alives))]
+        if odom is None:
+            odom = self.position_info_getter.get_msg()
+        return robots
+
+    def get_robot_indexes_from_model_state(self,
+        model_state: ModelStates=None
+        ) -> list:
+        # TODO needs to be changed with whycode
+        """Creates list with indexes of robots in model state.
+
+        Args:
+            model_state (ModelStates, optional): Source of robot indexes. Defaults to None.
+
+        Returns:
+            list: Robot indexes. ('tb_2' index is list[2])
+        """
+        robots = []#[None for i in range(len(self.robot_alives))]
+        if model_state is None:
+            model_state = self.position_info_getter.get_msg()
+        for w_id in self.list_whycon_id:
+            for i in range(len(model_state.name)):
+                if w_id in model_state.name[i]:
+                    print(f"i: {i}, w_id: {w_id}")
+                    robots.append(i)
+        return robots
+
+    def action_to_twist(self,
+        action: np.ndarray,
+        ) -> Twist:
+        """Transforms action 2d ndarray to Twist message.
+
+        Args:
+            action (np.ndarray): Ndarray 2d.
+
+        Returns:
+            Twist: Transformed message from ndarray.
+        """
+        assert len(action) == 2, 'Wrong action dimension!'
+        twist = Twist()
+        twist.linear.x = action[1] * 0.25
+        twist.angular.z = action[0] * 1.0# * (np.pi / 2)
+        return twist 
+
+    def get_distance(self, 
+        x_0: np.ndarray,
+        x_1: np.ndarray,
+        y_0: np.ndarray,
+        y_1: np.ndarray
+        ) -> np.ndarray:
+        """Returns distance between two arrays of positions.
+
+        Args:
+            x_0 (np.ndarray): X positions of first points
+            x_1 (np.ndarray): X positions of second points
+            y_0 (np.ndarray): Y positions of first points
+            y_1 (np.ndarray): Y positions of second points
+
+        Returns:
+            np.ndarray: Distances between points.
+        """
+        return np.sqrt((np.square(x_0 - x_1) + np.square(y_0 - y_1))) 
+
+    def get_positions_from_model_state(self,
+        model_state: ModelStates,
+        robot_indexes: list
+        ) -> tuple:
+        # TODO I think it will be great whycode can produce output in ModelState
+        """Get positional information from model_state
+
+        Args:
+            model_state (ModelStates): Information source.
+            robot_indexes (list): List of robot indexes.
+
+        Returns:
+            tuple: x, y, theta ndarrays of robots
+        """
+        x, y, theta, correct = [], [], [], []
+        for rid in self.robot_indexes:
+            index = robot_indexes[rid]
+            pose = model_state.pose[index]
+            #twist = model_state.twist[index]
+            x.append(pose.position.x)
+            y.append(pose.position.y)
+            # roll from whycon is the one for yaw for the robot. Reverse rotational direction. 
+            roll = euler_from_quaternion((pose.orientation.x, 
+                                                pose.orientation.y, 
+                                                pose.orientation.z, 
+                                                pose.orientation.w))[0]
+            
+            yaw = - (roll - np.pi/2)
+            theta.append(yaw)
+            #correct.append(twist.angular.x)
+        x = np.array(x)
+        y = np.array(y)
+        theta = np.array(theta)
+        print(f"ModelStates: {model_state.pose[3]}, robot_indexes: {robot_indexes}")
+        print(f"angles: {theta}")
+        #correct = np.array(correct)
+        return x, y, theta, correct
+    def get_positions_from_odom(self,
+        odom: Odometry,
+        robot_indexes: list
+        ) -> tuple:
+
+        # TODO I think it will be great whycode can produce output in ModelState
+        """Get positional information from model_state
+
+        Args:
+            model_state (ModelStates): Information source.
+            robot_indexes (list): List of robot indexes.
+
+        Returns:
+            tuple: x, y, theta ndarrays of robots
+        """
+        x, y, theta, correct = [], [], [], []
+        for rid in self.robot_indexes:
+            index = robot_indexes[rid]
+            pose = odom.pose.pose
+            twist = odom.twist.twist
+            x.append(pose.position.x)
+            y.append(pose.position.y)
+            theta.append(euler_from_quaternion((pose.orientation.x,
+                                                pose.orientation.y,
+                                                pose.orientation.z,
+                                                pose.orientation.w,))[2])
+            correct.append(twist.angular.x)
+        x = np.array(x)
+        y = np.array(y)
+        theta = np.array(theta)
+        correct = np.array(correct)
+        return x, y, theta, correct
+
+    def get_angle(self,
+        x_0: np.ndarray,
+        x_1: np.ndarray,
+        y_0: np.ndarray,
+        y_1: np.ndarray
+        ) -> np.ndarray:
+        """Returns base angle value between array of two points.
+
+        Args:
+            x_0 (np.ndarray): Source x values.
+            x_1 (np.ndarray): Positional x values.
+            y_0 (np.ndarray): Source y values.
+            y_1 (np.ndarray): Positional y values.
+
+        Returns:
+            np.ndarray: Angles between array of two points.
+        """
+        x_diff = x_0 - x_1
+        y_diff = y_0 - y_1
+        return np.arctan2(y_diff, x_diff)
+
+    def get_robot_lasers_collisions_sparse(self,
+        ) -> tuple:
+        """Returns values of all robots lasers and if robots collided.
+
+        Returns:
+            tuple: lasers, collisions
+        """
+        # laser: 760->24
+        # offset: pi
+        total_sample_num = 760
+        sampled_sample_num = 24
+        offset_scan = math.pi
+        scaled_offset_scan = int(total_sample_num * offset_scan / (2*math.pi))
+        lasers = []
+        collisions = [False for i in range(self.robot_count)]
+        id_collisions = [0 for i in range(self.robot_count)]
+        # each robot
+        for i in range(self.robot_count):
+            lasers.append([])
+            scan = self.laser_info_getter[i].get_msg()
+            #scan_ranges = deque(scan.ranges)
+            #scan_ranges.rotate(scaled_offset_scan)
+            #shifted_scan_ranges = list(scan_ranges)
+            #print(f"scan.ranges: {scan.ranges}")
+            #print(f"shifted_scan_ranges: {shifted_scan_ranges}")
+
+            scan_range = scan.ranges
+            #print(f"scan_range: {list(scan_range)}")
+            #reverse_scan_range = list(scan_range)[::-1]
+            #print(f"reverse_scan_range: {reverse_scan_range}")
+            # each laser in scan
+            for j in range(len(scan.ranges)):
+                lasers[i].append(0)
+                if scan_range[j] == float('Inf'):
+                    lasers[i][j] = self.normalise_scan(self.MAXIMUM_SCAN_RANGE)
+                elif np.isnan(scan_range[j]):
+                    lasers[i][j] = self.normalise_scan(self.MAXIMUM_SCAN_RANGE)
+                elif scan_range[j] < self.MINIMUM_CUT_RANGE:
+                    lasers[i][j] = self.normalise_scan(self.MINIMUM_CUT_RANGE)
+                elif scan_range[j] > self.MAXIMUM_SCAN_RANGE:
+                    lasers[i][j] = self.normalise_scan(self.MAXIMUM_SCAN_RANGE)
+                else:
+                    lasers[i][j] = self.normalise_scan(scan_range[j])
+            
+            #lasers = [[l for k, l in enumerate(lasers[i]) if k % 32==0]]
+            list_laser = [i for i in range(24)]
+            scale_factor = 760/24
+            list_laser_scaled = np.array(list_laser) * scale_factor
+            list_int_laser_scaled = [int(i) for i in list_laser_scaled]
+            lasers = [np.take(lr, list_int_laser_scaled) for lr in lasers]
+           # print(lasers)
+            id_collisions[i] = np.argmax(lasers[i])
+            if max(lasers[i]) > self.normalise_scan(self.COLLISION_RANGE):
+                
+                #print(f"This is a normalised collision value: {self.normalise_scan(self.COLLISION_RANGE)}")
+                collisions[i] = True
+            # if self.COLLISION_RANGE > min(lasers[i]) > self.MINIMUM_SCAN_RANGE:
+            #     collisions[i] = True
+            
+        #print(f"length of lasers: {len(lasers)}, lasers: {lasers}")
+        lasers = np.array(lasers).reshape(self.robot_count, 24)
+        collisions = np.array(collisions)
+        print(f"collisions: {collisions}")
+        return lasers, collisions
+        
+    def normalise_scan(self,
+        number: float) -> float:
+        """ Normalise the scan value with the given minimum and maxiumum range
+        Returns:
+            float: normalised scan value.
+        
+        """
+        normalised_value = self.MAXIMUM_SCAN_RANGE - (number - self.MINIMUM_SCAN_RANGE) * (self.MAXIMUM_SCAN_RANGE / (self.MAXIMUM_SCAN_RANGE - self.MINIMUM_SCAN_RANGE))
+        return normalised_value
+
+    def get_robot_lasers_collisions(self,
+        ) -> tuple:
+        """Returns values of all robots lasers and if robots collided.
+
+        Returns:
+            tuple: lasers, collisions
+        """
+        lasers = []
+        collisions = [False for i in range(self.robot_count)]
+        # each robot
+        for i in range(self.robot_count):
+            lasers.append([])
+            scan = self.laser_info_getter[i].get_msg()
+            # each laser in scan
+            for j in range(len(scan.ranges)):
+                lasers[i].append(0)
+                if scan.ranges[j] == float('Inf'):
+                    lasers[i][j] = 3.5
+                elif np.isnan(scan.ranges[j]):
+                    lasers[i][j] = 0
+                else:
+                    lasers[i][j] = scan.ranges[j]
+            if self.COLLISION_RANGE > min(lasers[i]) > 0.2:
+                collisions[i] = True
+        lasers = np.array(lasers)
+        collisions = np.array(collisions)
+        return lasers, collisions
+
+    def get_current_states(self
+        ) -> np.ndarray:
+        """Returns starting states.
+
+        Returns:
+            np.ndarray: Starting states.
+        """
+        print(f"print state started")
+        model_states = self.position_info_getter.get_msg()
+        robot_indexes = self.get_robot_indexes_from_model_state(model_states)
+        print(f"robot_indexs:{robot_indexes}")
+        x, y, theta, _ = self.get_positions_from_model_state(model_states,robot_indexes)
+        print(f"model_states: {model_states}")
+        # get current distance to goal
+        robot_target_distances = self.get_distance(x, self.x_targets, 
+                                                   y, self.y_targets)
+        # get current robot angles to targets
+        robot_target_angle = self.get_angle(self.x_targets, x, 
+                                            self.y_targets, y)
+        robot_target_angle_difference = (robot_target_angle - theta - np.pi) % (2 * np.pi) - np.pi
+        # get current laser measurements
+        print(f"laser")
+        robot_lasers, robot_collisions = self.get_robot_lasers_collisions_sparse()
+        print(f"shape of laser: {robot_lasers.shape}")
+        # create state array 
+        # = lasers (24), 
+        #   action linear x (1), action angular z (1), 
+        #   distance to target (1), angle to target (1)
+        # = dimension (6, 28)
+        s_actions_linear = np.zeros((self.robot_count, 1))
+        s_actions_angular = np.zeros((self.robot_count, 1))
+        s_robot_target_distances = robot_target_distances.reshape((self.robot_count, 1))
+        s_robot_target_angle_difference = robot_target_angle_difference.reshape((self.robot_count, 1))
+        assert robot_lasers.shape == (self.robot_count,24), 'Wrong lasers dimension!'
+        #assert s_actions_linear.shape == (self.robot_count, 1), 'Wrong action linear dimension!'
+        #assert s_actions_angular.shape == (self.robot_count, 1), 'Wrong action angular dimension!'
+        assert s_robot_target_distances.shape == (self.robot_count, 1), 'Wrong distance to target!'
+        assert s_robot_target_angle_difference.shape == (self.robot_count, 1), 'Wrong angle to target!'
+        states = np.hstack((robot_lasers, 
+                           #s_actions_linear, s_actions_angular, 
+                           s_robot_target_distances, s_robot_target_angle_difference))
+        assert states.shape == (self.robot_count, self.observation_dimension), 'Wrong states dimension!'
+        return states
+    # def get_current_states(self
+    #     ) -> np.ndarray:
+    #     """Returns starting states.
+
+    #     Returns:
+    #         np.ndarray: Starting states.
+    #     """
+    #     model_state = self.position_info_getter.get_msg()
+    #     robot_indexes = self.get_robot_indexes_from_model_state(model_state)
+    #     x, y, theta, _ = self.get_positions_from_model_state(model_state, 
+    #                                                          robot_indexes)
+    #     # get current distance to goal
+    #     robot_target_distances = self.get_distance(x, self.x_targets, 
+    #                                                y, self.y_targets)
+    #     # get current robot angles to targets
+    #     robot_target_angle = self.get_angle(self.x_targets, x, 
+    #                                         self.y_targets, y)
+    #     robot_target_angle_difference = (robot_target_angle - theta - np.pi) % (2 * np.pi) - np.pi
+    #     # get current laser measurements
+    #     robot_lasers, robot_collisions = self.get_robot_lasers_collisions()
+        
+    #     # create state array 
+    #     # = lasers (24), 
+    #     #   action linear x (1), action angular z (1), 
+    #     #   distance to target (1), angle to target (1)
+    #     # = dimension (6, 28)
+    #     s_actions_linear = np.zeros((self.robot_count, 1))
+    #     s_actions_angular = np.zeros((self.robot_count, 1))
+    #     s_robot_target_distances = robot_target_distances.reshape((self.robot_count, 1))
+    #     s_robot_target_angle_difference = robot_target_angle_difference.reshape((self.robot_count, 1))
+    #     assert robot_lasers.shape == (self.robot_count, 24), 'Wrong lasers dimension!'
+    #     assert s_actions_linear.shape == (self.robot_count, 1), 'Wrong action linear dimension!'
+    #     assert s_actions_angular.shape == (self.robot_count, 1), 'Wrong action angular dimension!'
+    #     assert s_robot_target_distances.shape == (self.robot_count, 1), 'Wrong distance to target!'
+    #     assert s_robot_target_angle_difference.shape == (self.robot_count, 1), 'Wrong angle to target!'
+    #     states = np.hstack((robot_lasers, 
+    #                        s_actions_linear, s_actions_angular, 
+    #                        s_robot_target_distances, s_robot_target_angle_difference))
+    #     assert states.shape == (self.robot_count, self.observation_dimension), 'Wrong states dimension!'
+    #     return states

@@ -41,18 +41,18 @@ TURTLEBOT_WORLD_6 = World(
                   True, 
                   True, 
                   True],
-    x_starts=[10.0, 
-             1.7, 
-             -6.0, 
-             12.0, 
-             0.0, 
-             -12.0],
-    y_starts=[9.0, 
-             9.0, 
-             9.0, 
-             -9.0, 
-             -9.0, 
-             -9.0],
+    x_starts=[[10.0], 
+             [1.7], 
+             [-6.0], 
+             [12.0], 
+             [0.0], 
+             [-12.0]],
+    y_starts=[[9.0], 
+             [9.0], 
+             [9.0], 
+             [-9.0], 
+             [-9.0], 
+             [-9.0]],
     target_positions=[[6.0, 5.0], 
                       [-2.0, 5.0], 
                       [-10.0, 5.0], 
@@ -141,5 +141,74 @@ TURTLEBOT_WORLD_5_STARTS = World(
                       [8.0, -5.0],
                       [-4.0, -5.0],
                       [-16.0, -5.0]]
+)
+
+# TODO needs to be modified after setting up WhyCODE
+REAL_WORLD = World(
+    robot_alives=[True],
+    x_starts=[[0.7]],
+    y_starts=[[0.3]],
+    target_positions=[[3.45, 2.8]]
+)
+REAL_SIM_WORLD = World(
+    robot_alives=[True],
+    x_starts=[[0.5]],
+    y_starts=[[0.5]],
+    target_positions=[[3.6, 2.8]]
+)
+
+
+REAL_WORLD_8 = World(
+    robot_alives=[True, 
+                  True, 
+                  True, 
+                  True, 
+                  True, 
+                  True,
+                  True,
+                  True],
+    x_starts=[[0.6], 
+             [0.6], 
+             [0.6], 
+             [0.6], 
+             [-4.5], 
+             [-4.5],
+             [-4.5],
+             [-4.5]],
+    y_starts=[[5.5], 
+             [0.5],
+             [-4.5],
+             [-9.5], 
+             [7.8], 
+             [2.8],
+             [-2.2], 
+             [-7.2]],
+    target_positions=[[3.8, 7.8], 
+                      [3.8, 2.8], 
+                      [3.8, -2.2], 
+                      [3.8, -7.2], 
+                      [-1.2, 5.2],
+                      [-1.2, 0.2],
+                      [-1.2, -4.8], 
+                      [-1.2, -9.8]]
+)
+
+REAL_WORLD_4_diff_reward = World(
+    robot_alives=[True, 
+                  True, 
+                  True, 
+                  True],
+    x_starts=[[0.6], 
+             [0.6],
+             [-4.5],
+             [-4.5]],
+    y_starts=[[5.5], 
+             [0.5],
+             [-2.2], 
+             [-7.2]],
+    target_positions=[[3.8, 7.8], 
+                      [3.8, 2.8], 
+                      [-1.2, -4.8], 
+                      [-1.2, -9.8]]
 )
 

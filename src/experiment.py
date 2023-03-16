@@ -12,9 +12,11 @@ import numpy as np
 HOME = os.environ['HOME']
 sys.path.append(HOME + '/catkin_ws/src/fl4sr/src')
 from IndividualDDPG import IndividualDDPG
+from IndividualDDPG_real import IndividualDDPG_real
 from SharedNetworkDDPG import SharedNetworkDDPG
 from SharedExperienceDDPG import SharedExperienceDDPG
 from FederatedLearningDDPG import FederatedLearningDDPG
+from SwarmLearningDDPG import SwarmLearningDDPG
 from PositiveWeightingDDPG import PositiveWeightingDDPG
 from RealWeightingDDPG import RealWeightingDDPG
 from MomentumAveragingDDPG import MomentumAveragingDDPG
@@ -27,13 +29,17 @@ from worlds import EVAL_WORLD_1
 from worlds import EVAL_WORLD_2
 from worlds import EVAL_WORLD_3
 from worlds import TURTLEBOT_WORLD_5_STARTS
-
+from worlds import REAL_WORLD
+from worlds import REAL_SIM_WORLD
+from worlds import REAL_WORLD_8
+from worlds import REAL_WORLD_4_diff_reward
 # GLOBAL VARIABLES
 DDPG = None
-METHODS = {'IDDPG': IndividualDDPG,
+METHODS = {'IDDPG': IndividualDDPG_real,
            'SEDDPG': SharedExperienceDDPG,
            'SNDDPG': SharedNetworkDDPG,
            'FLDDPG': FederatedLearningDDPG,
+           'SwarmDDPG': SwarmLearningDDPG,
            'PWDDPG': PositiveWeightingDDPG,
            'RWDDPG': RealWeightingDDPG,
            'MADDPG': MomentumAveragingDDPG,
@@ -42,9 +48,9 @@ METHODS = {'IDDPG': IndividualDDPG,
 EPISODE_COUNT = 125
 EPISODE_STEP_COUNT = 1024
 
-LEARN_WORLD = TURTLEBOT_WORLD_5
+LEARN_WORLD = REAL_WORLD_4_diff_reward
 
-EVAL_WORLD = EVAL_WORLD_0
+EVAL_WORLD = REAL_WORLD_4_diff_reward
 
 def experiment_learn(
         method: str,
@@ -52,38 +58,55 @@ def experiment_learn(
         seed: int,
         update_step: int,
         update_period: int,
+        reward_goal: float,
+        reward_collision: float,
+        reward_progress: float,
+        reward_max_collision: float,
+        list_reward: int,
+        factor_linear: float,
+        factor_angular: float,
+        discount_factor: float,
+        is_progress: bool
     ) -> bool:
     """Run learning experiment with specified values.
 
     Returns:
         bool: If program finished correctly.
     """
-    # ROS
-    # launch roscore
-    uuid = roslaunch.rlutil.get_or_generate_uuid(options_runid=None, options_wait_for_master=False)
-    roslaunch.configure_logging(uuid)
-    roscore_launch = roslaunch.parent.ROSLaunchParent(uuid, roslaunch_files=[], is_core=True)
-    roscore_launch.start()
-    # launch simulation
-    print('Simulation: Ready to start!')
-    uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
-    roslaunch.configure_logging(uuid)
-    world_launch = roslaunch.parent.ROSLaunchParent(uuid, ['/home/users/jpikman/catkin_ws/src/fl4sr/launch/frl_6.launch'])
-    world_launch.start()
-    time.sleep(5)
+    print(f"INSIDE experiment_learn | method: {method}, restart: {restart}, seed: {seed}, update_step: {update_step}, update_period: {update_period}, reward_goal: {reward_goal}, reward_collision: {reward_collision}, reward_progress: {reward_progress}, list_reward: {list_reward}, factor_linear: {factor_linear}, factor_angular: {factor_angular}, discount_factor: {discount_factor}, is_progress: {is_progress}")
+    # # ROS
+    # # launch roscore
+    # os.environ['ROS_MASTER_URI'] = f"http://192.168.210.127:11351/"
+    # #os.environ['GAZEBO_MASTER_URI'] = f"http://192.168.210.127:11371/"
+    # uuid = roslaunch.rlutil.get_or_generate_uuid(options_runid=None, options_wait_for_master=False)
+    # roslaunch.configure_logging(uuid)
+    # roscore_launch = roslaunch.parent.ROSLaunchParent(uuid, roslaunch_files=[], is_core=True)
+    # roscore_launch.start()
+    # # launch simulation
+    # print('Simulation: Ready to start!')
+    # uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
+    # roslaunch.configure_logging(uuid)
+    # world_launch = roslaunch.parent.ROSLaunchParent(uuid, [HOME + '/catkin_ws/src/fl4sr/launch/fl4sr_real_8_diff_reward.launch'])
+    # world_launch.start()
+    # time.sleep(5)
     # SETTINGS
     # set seeds
     if seed is not None:
         random.seed(seed)
         np.random.seed(seed)
+
+    LEARN_ENV = 'Enviroment'
     # RUN
     print('Simulation: Ready to run!')
     if restart:
         with open('experiment.pickle', 'rb') as f:
             DDPG = pickle.load(f)
         DDPG.init_enviroment()
+        print(f"INSIDE Enviroment | RESTART!")
     else:
-        DDPG = METHODS[method](EPISODE_COUNT, EPISODE_STEP_COUNT, LEARN_WORLD)
+        
+        print(f"INSIDE Enviroment | INITIALISE DDPG")
+        DDPG = METHODS[method](EPISODE_COUNT, EPISODE_STEP_COUNT, LEARN_WORLD, LEARN_ENV, reward_goal, reward_collision, reward_progress, reward_max_collision, list_reward, factor_linear, factor_angular, discount_factor, method)
         if update_step is None and update_period is not None:
             DDPG.EPISODE_UPDATE = True
             DDPG.TIME_UPDATE = update_period
@@ -108,11 +131,12 @@ def experiment_test(
         restart: bool,
         seed: int,
         world_number: int,
+        model_name: str, 
+        env_name: str,
         path_actor: str,
         path_critic: str
     ) -> bool:
     """Run evaluation experiment with specified values.
-
     Returns:
         bool: If program finished correctly.
     """
@@ -126,11 +150,12 @@ def experiment_test(
     print('Simulation: Ready to start!')
     uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
     roslaunch.configure_logging(uuid)
-    world_launch = roslaunch.parent.ROSLaunchParent(uuid, ['/home/users/jpikman/catkin_ws/src/fl4sr/launch/fl4sr_eval.launch'])
+    world_launch = roslaunch.parent.ROSLaunchParent(uuid, [HOME + '/catkin_ws/src/fl4sr/launch/fl4sr_real_8_diff_reward.launch'])
     world_launch.start()
     time.sleep(5)
     # SETTINGS
-    EPISODE_COUNT = 4
+    EPISODE_COUNT = 10
+    robot_alives = 4
     # set seeds
     if seed is not None:
         random.seed(seed)
@@ -144,6 +169,14 @@ def experiment_test(
         EVAL_WORLD = EVAL_WORLD_2
     elif world_number == 3:
         EVAL_WORLD = EVAL_WORLD_3
+    elif world_number == 99:
+        EVAL_WORLD = REAL_SIM_WORLD
+    elif world_number == 100:
+        EVAL_WORLD = REAL_WORLD_8
+    elif world_number == 101:
+        EVAL_WORLD = REAL_WORLD_4_diff_reward
+    # set env
+    EVAL_ENV = env_name
     # RUN
     print('Simulation: Ready to run!')
     if restart:
@@ -151,10 +184,10 @@ def experiment_test(
             DDPG = pickle.load(f)
         DDPG.init_enviroment()
     else:
-        DDPG = IndividualDDPG(EPISODE_COUNT, EPISODE_STEP_COUNT, EVAL_WORLD, 'EVAL-{}'.format(world_number))
+        DDPG = IndividualDDPG(EPISODE_COUNT, EPISODE_STEP_COUNT, EVAL_WORLD, model_name, EVAL_ENV,'EVAL-{}'.format(world_number))
         DDPG.agents_load(
-            [path_actor],
-            [path_critic]
+            [path_actor for _ in range(robot_alives)],
+            [path_critic for _ in range(robot_alives)]
         ) 
     success, _, _ = DDPG.test()
     roscore_launch.shutdown()
@@ -169,6 +202,7 @@ def experiment_test(
             f.write('RESTART')
     return success
 
+
 if __name__ == '__main__':
     # Experiments are defined by changing parameters in this file 
     # and also by setting arguments while starting running.
@@ -180,13 +214,24 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='Experiment script for fl4sr project.')
     parser.add_argument(
-        'learn',
-        type=bool,
-        help='If method is supposted to learn or test')
+        '--mode',
+        type=str,
+        default='real',
+        help='If method is supposted to learn, test in simulation or real-robot')
     parser.add_argument(
         '--worldNumber', 
         type=int,
         help='Specifier for world type.')
+
+    parser.add_argument(
+        '--model_name',
+        type=str,
+        help='Name of the model to evaluates.')
+
+    parser.add_argument(
+        '--env_name',
+        type=str,
+        help='Name of the environment file.')
     parser.add_argument(
         '--pathActor', 
         type=str,
@@ -195,6 +240,15 @@ if __name__ == '__main__':
         '--pathCritic', 
         type=str,
         help='Path to critic.')
+    parser.add_argument(
+        '--model_name',
+        type=str,
+        help='Name of the model to evaluates.')
+
+    parser.add_argument(
+        '--env_name',
+        type=str,
+        help='Name of the environment file.')
     parser.add_argument(
         'method', 
         type=str,
@@ -215,6 +269,47 @@ if __name__ == '__main__':
         '--updatePeriod',
         type=int,
         help='Period of federated update.')
+    parser.add_argument(
+        '--reward_goal',
+        type=float,
+        help='Reward for reaching a goal.')
+    parser.add_argument(
+        '--reward_collision',
+        type=float,
+        help='Reward for collision.')
+    parser.add_argument(
+        '--reward_progress',
+        type=float,
+        help='Reward for the progress.')
+    parser.add_argument(
+        '--reward_max_collision',
+        type=float,
+        help='Reward for MAx collision dense.')
+    parser.add_argument(
+        '--list_reward',
+        type=int,
+        help='number for the list of reward.')
+    
+    parser.add_argument(
+        '--factor_linear',
+        type=float,
+        help='Scaling factor for the linear velocity.')
+    parser.add_argument(
+        '--factor_angular',
+        type=float,
+        help='Scaling factor for the angular velocity.')
+    parser.add_argument(
+        '--discount_factor',
+        type=float,
+        help='discount_factor')   
+    parser.add_argument(
+        '--is_progress',
+        type=bool,
+        help='Determining the progress reward using step size or just using distances')
+    parser.add_argument(
+        'method', 
+        type=str,
+        help='Name of used method.')
     args = parser.parse_args()
     
     # ARGUMENTS
@@ -224,4 +319,4 @@ if __name__ == '__main__':
     if args.learn:
         experiment_learn(args.method, args.restart, args.seed, args.updateStep, args.updatePeriod)
     else:
-        experiment_test(args.restart, args.seed, args.worldNumber, args.pathActor, args.pathCritic)
+        experiment_test(args.restart, args.seed, args.worldNumber, args.model_name, args.env_name, args.pathActor, args.pathCritic)

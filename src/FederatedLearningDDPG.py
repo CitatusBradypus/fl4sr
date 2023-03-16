@@ -7,9 +7,9 @@ from numpy.core.fromnumeric import size
 import torch
 HOME = os.environ['HOME']
 sys.path.append(HOME + '/catkin_ws/src/fl4sr/src')
-from IndividualDDPG import IndividualDDPG
+from IndividualDDPG_limit import IndividualDDPG
 from worlds import World
-from DDPG import DDPG
+from DDPG_limit import DDPG
 from buffers import BasicBuffer, Transition
 import numpy as np
 
@@ -25,9 +25,20 @@ class FederatedLearningDDPG(IndividualDDPG):
     """
 
     def __init__(self, 
-        episode_count: int, 
-        episode_step_count: int, 
-        world: World
+        episode_count: int,
+        episode_step_count: int,
+        world: World,
+        env = 'Enviroment',
+        reward_goal: float = 100.0,
+        reward_collision: float = -30.0,
+        reward_progress: float = 40.0,
+        reward_max_collision: float = 3.0,
+        list_reward: int = 1,
+        factor_linear: float = 0.25,
+        factor_angular: float = 1.0,
+        discount_factor: float = 0.99,
+        is_progress: bool = False,
+        name=None, 
         ) -> None:
         """Initialize
 
@@ -36,10 +47,11 @@ class FederatedLearningDDPG(IndividualDDPG):
             episode_step_count (int): ...
             world (World): contains information about experiment characteristics
         """
+        print(f"INSIDE FederatedLearningDDPG: episode_count: {episode_count}, episode_step_count: {episode_step_count}. world: {world}, env: {env}, name: {name} reward_goal: {reward_goal}, reward_collision: {reward_collision}, reward_progress: {reward_progress}, factor_linear: {factor_linear}, factor_angular: {factor_angular}, discount_factor: {discount_factor}, is_progress: {is_progress}")
         # set hyperparameters
         self.NAME = 'FLDDPG'
         self.BUFFER_SIZE = 10000
-        super().__init__(episode_count, episode_step_count, world)
+        super().__init__(episode_count, episode_step_count, world, env, reward_goal, reward_collision, reward_progress, reward_max_collision, list_reward, factor_linear, factor_angular, discount_factor, is_progress, name)
         # get model coutns
         self.agents_count = len(self.agents)
         self.actor_layers_count = len(self.agents[0].actor.layers)
