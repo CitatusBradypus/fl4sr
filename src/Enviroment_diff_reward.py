@@ -331,13 +331,27 @@ class Enviroment():
         x_b, y_b, _, _ = self.get_positions_from_model_state(model_state_before_time_step, robot_indexes_b)
         start_time = rospy.get_time()
         start_time_b = rospy.get_time()
+        start_time_real = time.time()
         self.unpause()
+        while_loop_counter = 0
         while(running_time < time_step):
+            
             self.rate.sleep()
             running_time = rospy.get_time() - start_time
+            running_time_real = time.time() - start_time_real
+            while_loop_counter = while_loop_counter + 1
+            #print(f"Running Time (rospy.get_time()): {running_time} ")
+            #print(f"Running Time (time.time()): {running_time_real}")
+            #print(f"While loop counter: {while_loop_counter}")
+        
         self.pause()
+        end_time_real = time.time()
         end_time_a = rospy.get_time()
-        #print(f"Actual time taken: {end_time_a - start_time_b}")
+        while_loop_counter = 0
+        print(f"While Loop time taken (rospy.get_time(): {end_time_a - start_time_b}")
+        print(f"While Loop time taken (time.time()): {end_time_real - start_time_real}")
+        
+
         model_state_after_time_step = self.position_info_getter.get_msg()
         robot_indexes_a = self.get_robot_indexes_from_model_state(model_state_after_time_step)
         x_a, y_a, _, _ = self.get_positions_from_model_state(model_state_after_time_step, robot_indexes_a)
@@ -371,9 +385,7 @@ class Enviroment():
         #     for i in range(self.robot_count):
         #         self.laser_buffer[i].append(scan.ranges[i])
 
-        print(f"before putting")
         self.put_scan_into_buffer()
-        print(f"after putting")
         list_median_scan_ranges = self.apply_median_filter()
         robot_lasers, robot_collisions, id_collisions = self.get_robot_lasers_collisions(list_median_scan_ranges)
 
@@ -630,10 +642,8 @@ class Enviroment():
             list_laser_buffer.append(list_laser)
 
         # 2. Calculate the median of the obtained laser_buffer.
-        print(f"before median: {list_laser_buffer}")
         array_median_scan_ranges = np.median(list_laser_buffer, axis=1)
         list_median_scan_ranges = array_median_scan_ranges.tolist()
-        print(f"after median: {array_median_scan_ranges}")
         
         return list_median_scan_ranges
 
@@ -717,8 +727,6 @@ class Enviroment():
 
         list_median_scan_ranges = self.apply_median_filter()
         robot_lasers, robot_collisions, id_collisions = self.get_robot_lasers_collisions(list_median_scan_ranges)
-        #self.laser_buffer = [queue.Queue(self.num_laser_buffer) for i in range(self.robot_count)] #[[] for i in range(self.robot_count)]
-        print(f"shape robot_lasers: {robot_lasers.shape}")
         
         # create state array 
         # = lasers (24), 
