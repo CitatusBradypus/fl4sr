@@ -17,6 +17,7 @@ from sensor_msgs.msg import LaserScan
 from gazebo_msgs.msg import ModelStates
 from gazebo_msgs.msg import ModelState
 from gazebo_msgs.srv import SetModelState
+from gazebo_msgs.srv import StepControl
 from std_srvs.srv import Empty
 from tf.transformations import euler_from_quaternion
 import queue
@@ -112,6 +113,8 @@ class Enviroment():
         self.pause = rospy.ServiceProxy('/gazebo/pause_physics', Empty)
         rospy.wait_for_service('/gazebo/unpause_physics')
         self.unpause = rospy.ServiceProxy('/gazebo/unpause_physics', Empty)
+        self.step_control = rospy.ServiceProxy('/gazebo/step_control', StepControl)
+        self.sim_step_size = 0.001 
         self.pause()
         # world settings
         self.robot_count = world.robot_count
@@ -330,26 +333,36 @@ class Enviroment():
         robot_indexes_b = self.get_robot_indexes_from_model_state(model_state_before_time_step)
         x_b, y_b, _, _ = self.get_positions_from_model_state(model_state_before_time_step, robot_indexes_b)
         start_time = rospy.get_time()
-        start_time_b = rospy.get_time()
         start_time_real = time.time()
-        self.unpause()
-        while_loop_counter = 0
-        while(running_time < time_step):
-            
-            self.rate.sleep()
-            running_time = rospy.get_time() - start_time
-            running_time_real = time.time() - start_time_real
-            while_loop_counter = while_loop_counter + 1
-            #print(f"Running Time (rospy.get_time()): {running_time} ")
-            #print(f"Running Time (time.time()): {running_time_real}")
-            #print(f"While loop counter: {while_loop_counter}")
+        #self.unpause()
+        num_simulation_step = int(time_step / self.sim_step_size)
+        elapsed_sim_time = 0
+        self.step_control(True, True, num_simulation_step)
         
+        while elapsed_sim_time < time_step - self.sim_step_size:
+            self.rate.sleep() 
+            elapsed_sim_time = rospy.get_time() - start_time
+            print(f"elapsed_sim_time: {elapsed_sim_time}")
+
+        print(f"elapsed_real_time: {time.time() - start_time_real }")
         self.pause()
-        end_time_real = time.time()
-        end_time_a = rospy.get_time()
-        while_loop_counter = 0
-        print(f"While Loop time taken (rospy.get_time(): {end_time_a - start_time_b}")
-        print(f"While Loop time taken (time.time()): {end_time_real - start_time_real}")
+        print(f"paused_sim_time: {rospy.get_time() - start_time }")
+        print(f"paused_real_time: {time.time() - start_time_real }")
+
+
+        # self.unpause()
+        # while_loop_counter = 0
+        # while(running_time < time_step):
+            
+        #     self.rate.sleep()
+        #     running_time = rospy.get_time() - start_time
+        #     running_time_real = time.time() - start_time_real
+        #     while_loop_counter = while_loop_counter + 1
+        #     #print(f"Running Time (rospy.get_time()): {running_time} ")
+        #     #print(f"Running Time (time.time()): {running_time_real}")
+        #     #print(f"While loop counter: {while_loop_counter}")
+        
+        # self.pause()
         
 
         model_state_after_time_step = self.position_info_getter.get_msg()
@@ -398,7 +411,7 @@ class Enviroment():
         s_actions_angular = actions_angular_z.reshape((self.robot_count, 1))
         s_robot_target_distances = robot_target_distances.reshape((self.robot_count, 1)) /self.FACTOR_NORMALISE_DISTANCE 
         s_robot_target_angle_difference = robot_target_angle_difference.reshape((self.robot_count, 1)) / self.FACTOR_NORMALISE_ANGLE
-        assert robot_lasers.shape == (self.robot_count, 24), 'Wrong lasers dimension!'
+        assert robot_lasers.shape == (self.robot_count, 24), f'Wrong lasers dimension!: {robot_lasers.shape}'
         assert s_actions_linear.shape == (self.robot_count, 1), 'Wrong action linear dimension!'
         assert s_actions_angular.shape == (self.robot_count, 1), 'Wrong action angular dimension!'
         assert s_robot_target_distances.shape == (self.robot_count, 1), 'Wrong distance to target!'
@@ -737,7 +750,7 @@ class Enviroment():
         s_actions_angular = np.zeros((self.robot_count, 1))
         s_robot_target_distances = robot_target_distances.reshape((self.robot_count, 1))
         s_robot_target_angle_difference = robot_target_angle_difference.reshape((self.robot_count, 1))
-        assert robot_lasers.shape == (self.robot_count, 24), 'Wrong lasers dimension!'
+        assert robot_lasers.shape == (self.robot_count, 24), f'Wrong lasers dimension!: {robot_lasers.shape}'
         assert s_actions_linear.shape == (self.robot_count, 1), 'Wrong action linear dimension!'
         assert s_actions_angular.shape == (self.robot_count, 1), 'Wrong action angular dimension!'
         assert s_robot_target_distances.shape == (self.robot_count, 1), 'Wrong distance to target!'
