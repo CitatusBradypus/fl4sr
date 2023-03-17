@@ -114,7 +114,7 @@ class Enviroment():
         rospy.wait_for_service('/gazebo/unpause_physics')
         self.unpause = rospy.ServiceProxy('/gazebo/unpause_physics', Empty)
         self.step_control = rospy.ServiceProxy('/gazebo/step_control', StepControl)
-        self.sim_step_size = 0.001 
+        self.sim_step_size = 0.01 
         self.pause()
         # world settings
         self.robot_count = world.robot_count
@@ -152,7 +152,9 @@ class Enviroment():
         self.command_empty = Twist()
         # basic settings
         self.node = rospy.init_node('turtlebot_env', anonymous=True)
-        self.rate = rospy.Rate(100)
+        self.rate_freq = 100
+        self.rate_period = 1 / self.rate_freq
+        self.rate = rospy.Rate(self.rate_freq)
         self.laser_count = 24
         
         self.observation_dimension = self.laser_count + 1 # 20230315 removed abs_distance
@@ -339,15 +341,13 @@ class Enviroment():
         elapsed_sim_time = 0
         self.step_control(True, True, num_simulation_step)
         
-        while elapsed_sim_time < time_step - self.sim_step_size:
+        while elapsed_sim_time < time_step - self.rate_period:
             self.rate.sleep() 
             elapsed_sim_time = rospy.get_time() - start_time
-            print(f"elapsed_sim_time: {elapsed_sim_time}")
 
         print(f"elapsed_real_time: {time.time() - start_time_real }")
         self.pause()
         print(f"paused_sim_time: {rospy.get_time() - start_time }")
-        print(f"paused_real_time: {time.time() - start_time_real }")
 
 
         # self.unpause()
